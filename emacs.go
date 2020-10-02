@@ -1,6 +1,8 @@
 // Package emacs implements an emacs cache
 package emacs
 
+// TODO: this package should eventually deal with maintaining an emacs server.
+
 import (
 	"encoding/json"
 	"fmt"
@@ -191,7 +193,7 @@ func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*com
 // Command defines the emacs command and subcommands.
 func (e *Emacs) Command() commands.Command {
 	completor := &commands.Completor{
-		Distinct: true,
+		Distinct:          true,
 		SuggestionFetcher: &commands.FileFetcher{},
 	}
 	// TODO: add option to ignore subcommand suggestions.
