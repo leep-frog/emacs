@@ -161,6 +161,7 @@ func (e *Emacs) OpenEditor(args, flags map[string]*commands.Value) (*commands.Ex
 
 	command := make([]string, 0, 1+2*len(files))
 	command = append(command, "emacs")
+	command = append(command, "--no-window-system")
 	for _, f := range files {
 		if f.lineNumber != 0 {
 			command = append(command, fmt.Sprintf("+%d", f.lineNumber))
