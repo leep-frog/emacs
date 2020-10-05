@@ -4,9 +4,10 @@ github.com/leep-frog/cli v0.0.0-20200930180546-7cf859eae87e h1:y2AiV/NSvkTcGfZ5q
 github.com/leep-frog/cli v0.0.0-20200930180546-7cf859eae87e/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
 github.com/leep-frog/cli v0.0.0-20200930232322-706bd2fc7b1a h1:08EW9TfoHOzam58AYni8Y1zB+Lx/zXplgjj2rBRk/nc=
 github.com/leep-frog/cli v0.0.0-20200930232322-706bd2fc7b1a/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
+github.com/leep-frog/cli v0.0.0-20201005180906-d45f4fe8152b h1:Vdzo0G4staTtBanakbuiRnOOyJ3cXJXJEYzf3629CiY=
+github.com/leep-frog/cli v0.0.0-20201005180906-d45f4fe8152b/go.mod h1:pMTCZA9GUIvpIzMepo+Se/RTHHgu7AOxOmgmkVilz2U=
 github.com/leep-frog/cli-sourcer v0.0.0-20201002010744-f43548835d6b/go.mod h1:k6K6tcbmEe/3JscUMZUpvBXpyZkkb3PU+SpuSbl8aWc=
-github.com/leep-frog/cli-sourcer v0.0.0-20201002135142-79ec6ede258a h1:tmsEhDY3e4NvFYm897Xz15HdN+7KOteKf822t8mR+cs=
-github.com/leep-frog/cli-sourcer v0.0.0-20201002135142-79ec6ede258a/go.mod h1:4plZ9Y1UzVobVZ6JvoTolBu3bzQLXBrXh5euQ7v7cTk=
+github.com/leep-frog/cli-sourcer v0.0.0-20201002125836-af9b049ac159/go.mod h1:4plZ9Y1UzVobVZ6JvoTolBu3bzQLXBrXh5euQ7v7cTk=
 github.com/leep-frog/emacs v0.0.0-20200930185155-173e4022764c/go.mod h1:ZDGZb/OjK++pPvMCxQkj7gIBLAKKHqUEvxmiair0xwQ=
 github.com/leep-frog/todo v0.0.0-20200930185643-818c1a24fcff h1:xL11+zBaftM4HgR9NYqnWL6JGxqmULyp3s4fsHIXKwo=
 github.com/leep-frog/todo v0.0.0-20200930185643-818c1a24fcff/go.mod h1:+sFwbomzvcfirtzCl7UTvYUKlYWbScKpr6AQ7DKA0Yk=
