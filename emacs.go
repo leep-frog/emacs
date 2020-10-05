@@ -199,8 +199,8 @@ func (e *Emacs) Command() commands.Command {
 		Distinct:          true,
 		SuggestionFetcher: &commands.FileFetcher{},
 	}
-	// TODO: add option to ignore subcommand suggestions.
 	return &commands.CommandBranch{
+		IgnoreSubcommandAutocomplete: true,
 		TerminusCommand: &commands.TerminusCommand{
 			Executor: e.OpenEditor,
 			Args: []commands.Arg{

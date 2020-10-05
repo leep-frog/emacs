@@ -74,23 +74,20 @@ func TestAutocomplete(t *testing.T) {
 		want []string
 	}{
 		{
-			name: "suggests all options",
+			name: "doesn't suggest subcommands",
 			want: []string{
-				".git",
-				"a",
-				"d",
+				".git/",
 				"emacs.go",
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
-				"l",
 			},
 		},
 		{
 			name: "suggests only files after first command",
 			args: []string{"file1.txt", ""},
 			want: []string{
-				".git",
+				".git/",
 				"emacs.go",
 				"emacs_test.go",
 				"go.mod",
