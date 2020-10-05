@@ -164,6 +164,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantResp: &commands.ExecutorResponse{
 				Executable: []string{
 					"emacs",
+					"--no-window-system",
 					"first.txt",
 					"compounds/sodiumChloride",
 					"catan/oreAndWheat",
@@ -189,6 +190,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantResp: &commands.ExecutorResponse{
 				Executable: []string{
 					"emacs",
+					"--no-window-system",
 					"first.txt",
 					"+32",
 					"compounds/sodiumChloride",
@@ -214,6 +216,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantResp: &commands.ExecutorResponse{
 				Executable: []string{
 					"emacs",
+					"--no-window-system",
 					"+32",
 					"compounds/sodiumChloride",
 					"14",
