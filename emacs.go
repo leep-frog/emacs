@@ -185,12 +185,14 @@ type aliasFetcher struct {
 
 func (af *aliasFetcher) PrefixFilter() bool { return true }
 
-func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) []string {
+func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) *commands.Completion {
 	suggestions := make([]string, 0, len(af.emacs.Aliases))
 	for k := range af.emacs.Aliases {
 		suggestions = append(suggestions, k)
 	}
-	return suggestions
+	return &commands.Completion{
+		Suggestions: suggestions,
+	}
 }
 
 // Command defines the emacs command and subcommands.

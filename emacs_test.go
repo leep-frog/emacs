@@ -3,7 +3,6 @@ package emacs
 import (
 	"fmt"
 	"os"
-	"sort"
 	"strings"
 	"testing"
 	"time"
@@ -106,7 +105,6 @@ func TestAutocomplete(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			suggestions := commands.Autocomplete(e.Command(), test.args, -1)
-			sort.Strings(suggestions)
 			if diff := cmp.Diff(test.want, suggestions); diff != "" {
 				t.Errorf("Complete(%v) produced diff (-want, +got):\n%s", test.args, diff)
 			}
