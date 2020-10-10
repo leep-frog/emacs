@@ -6,5 +6,10 @@ github.com/leep-frog/cli v0.0.0-20201005191804-77f90a1a3357 h1:d7mRzaNppMhF4q0wI
 github.com/leep-frog/cli v0.0.0-20201005191804-77f90a1a3357/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
 github.com/leep-frog/cli v0.0.0-20201006162622-61df0ec5e6b1 h1:6Rw/rsXxciTKmRTD/6VDoG3pdIe4GPN8ypIKNIXhD6E=
 github.com/leep-frog/cli v0.0.0-20201006162622-61df0ec5e6b1/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
+github.com/leep-frog/cli v0.0.0-20201006184440-9280f937cea2 h1:mEP8zHF21CUWCRrJqY6zqav5BOltjNmnk5Nbqctkr4I=
+github.com/leep-frog/cli v0.0.0-20201006184440-9280f937cea2/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
+github.com/leep-frog/cli v0.0.0-20201009173411-a92f93b62881 h1:2+p4SUmhPnRRNUQri0htaQrmGZSc71rXk+aTgBDvtjU=
+github.com/leep-frog/cli v0.0.0-20201009173411-a92f93b62881/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
+github.com/leep-frog/cli v1.0.0 h1:7hwdXoc9IT6e7pQemdhiah8RLNs6APJXJDE2Sz1k3W4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=

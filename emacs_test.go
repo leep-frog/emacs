@@ -80,6 +80,7 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				" ",
 			},
 		},
 		{
@@ -91,6 +92,8 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				// TODO: shouldn't have this
+				" ",
 			},
 		},
 		// aliasFetcher tests
@@ -118,9 +121,11 @@ func TestEmacsExecution(t *testing.T) {
 		e               *Emacs
 		args            []string
 		want            *Emacs
+		wantOK          bool
 		wantResp        *commands.ExecutorResponse
 		wantChanged     bool
-		wantErr         string
+		wantStdout      []string
+		wantStderr      []string
 		osStatInfo      os.FileInfo
 		osStatErr       error
 		absolutePath    string
@@ -128,18 +133,18 @@ func TestEmacsExecution(t *testing.T) {
 	}{
 		// OpenEditor tests
 		{
-			name:    "handles nil args",
-			wantErr: `no argument provided for "EMACS_ARG"`,
+			name:       "handles nil args",
+			wantStderr: []string{`no argument provided for "EMACS_ARG"`},
 		},
 		{
-			name:    "handles empty args",
-			args:    []string{},
-			wantErr: `no argument provided for "EMACS_ARG"`,
+			name:       "handles empty args",
+			args:       []string{},
+			wantStderr: []string{`no argument provided for "EMACS_ARG"`},
 		},
 		{
-			name:    "error when too many arguments",
-			args:    []string{"file1", "file2", "file3", "file4", "file5"},
-			wantErr: "extra unknown args ([file5])",
+			name:       "error when too many arguments",
+			args:       []string{"file1", "file2", "file3", "file4", "file5"},
+			wantStderr: []string{"extra unknown args ([file5])"},
 		},
 		{
 			name: "handles files and alises",
@@ -149,7 +154,8 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args: []string{"first.txt", "salt", "city", "fourth.go"},
+			args:   []string{"first.txt", "salt", "city", "fourth.go"},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -175,7 +181,8 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args: []string{"first.txt", "salt", "32", "fourth.go"},
+			args:   []string{"first.txt", "salt", "32", "fourth.go"},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -201,7 +208,8 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args: []string{"salt", "32", "14"},
+			args:   []string{"salt", "32", "14"},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -220,19 +228,19 @@ func TestEmacsExecution(t *testing.T) {
 		},
 		// AddAlias tests
 		{
-			name:    "fails if no alias",
-			args:    []string{"a"},
-			wantErr: `no argument provided for "ALIAS"`,
+			name:       "fails if no alias",
+			args:       []string{"a"},
+			wantStderr: []string{`no argument provided for "ALIAS"`},
 		},
 		{
-			name:    "fails if no filename",
-			args:    []string{"a", "bond"},
-			wantErr: `no argument provided for "FILE"`,
+			name:       "fails if no filename",
+			args:       []string{"a", "bond"},
+			wantStderr: []string{`no argument provided for "FILE"`},
 		},
 		{
-			name:    "fails if too many arguments",
-			args:    []string{"a", "salt", "Na", "Cl"},
-			wantErr: "extra unknown args ([Cl])",
+			name:       "fails if too many arguments",
+			args:       []string{"a", "salt", "Na", "Cl"},
+			wantStderr: []string{"extra unknown args ([Cl])"},
 		},
 		{
 			name: "fails if alias already defined",
@@ -241,8 +249,8 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "NaCl",
 				},
 			},
-			args:    []string{"a", "salt", "sodiumChloride"},
-			wantErr: "alias already defined: (salt: NaCl)",
+			args:       []string{"a", "salt", "sodiumChloride"},
+			wantStderr: []string{"alias already defined: (salt: NaCl)"},
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "NaCl",
@@ -250,19 +258,19 @@ func TestEmacsExecution(t *testing.T) {
 			},
 		},
 		{
-			name:      "fails if osStat error",
-			e:         &Emacs{},
-			args:      []string{"a", "salt", "sodiumChloride"},
-			osStatErr: fmt.Errorf("broken"),
-			wantErr:   "error with file: broken",
-			want:      &Emacs{},
+			name:       "fails if osStat error",
+			e:          &Emacs{},
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatErr:  fmt.Errorf("broken"),
+			wantStderr: []string{"error with file: broken"},
+			want:       &Emacs{},
 		},
 		{
 			name:       "fails if directory",
 			e:          &Emacs{},
 			args:       []string{"a", "salt", "sodiumChloride"},
 			osStatInfo: &fakeFileInfo{mode: os.ModeDir},
-			wantErr:    "sodiumChloride is a directory",
+			wantStderr: []string{"sodiumChloride is a directory"},
 			want:       &Emacs{},
 		},
 		{
@@ -272,7 +280,7 @@ func TestEmacsExecution(t *testing.T) {
 			osStatInfo:      &fakeFileInfo{mode: 0},
 			absolutePathErr: fmt.Errorf("absolute mistake"),
 			want:            &Emacs{},
-			wantErr:         "failed to get absolute file path: absolute mistake",
+			wantStderr:      []string{"failed to get absolute file path: absolute mistake"},
 		},
 		{
 			name:         "adds to nil aliases",
@@ -280,6 +288,7 @@ func TestEmacsExecution(t *testing.T) {
 			args:         []string{"a", "salt", "sodiumChloride"},
 			osStatInfo:   &fakeFileInfo{mode: 0},
 			absolutePath: "compounds/sodiumChloride",
+			wantOK:       true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -296,6 +305,7 @@ func TestEmacsExecution(t *testing.T) {
 			args:         []string{"a", "salt", "sodiumChloride"},
 			osStatInfo:   &fakeFileInfo{mode: 0},
 			absolutePath: "compounds/sodiumChloride",
+			wantOK:       true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -315,6 +325,7 @@ func TestEmacsExecution(t *testing.T) {
 			args:         []string{"a", "salt", "sodiumChloride"},
 			osStatInfo:   &fakeFileInfo{mode: 0},
 			absolutePath: "compounds/sodiumChloride",
+			wantOK:       true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"other": "things",
@@ -327,20 +338,20 @@ func TestEmacsExecution(t *testing.T) {
 		},
 		// DeleteAliases tests
 		{
-			name:    "error if no arguments",
-			e:       &Emacs{},
-			args:    []string{"d"},
-			want:    &Emacs{},
-			wantErr: `no argument provided for "ALIAS"`,
+			name:       "error if no arguments",
+			e:          &Emacs{},
+			args:       []string{"d"},
+			want:       &Emacs{},
+			wantStderr: []string{`no argument provided for "ALIAS"`},
 		},
 		{
-			name: "ignores unknown alias",
-			e:    &Emacs{},
-			args: []string{"d", "salt"},
-			want: &Emacs{},
-			wantResp: &commands.ExecutorResponse{
-				Stderr: []string{`alias "salt" does not exist`},
-			},
+			name:       "ignores unknown alias",
+			e:          &Emacs{},
+			args:       []string{"d", "salt"},
+			want:       &Emacs{},
+			wantOK:     true,
+			wantResp:   &commands.ExecutorResponse{},
+			wantStderr: []string{`alias "salt" does not exist`},
 		},
 		{
 			name: "deletes existing alias",
@@ -353,6 +364,7 @@ func TestEmacsExecution(t *testing.T) {
 			want: &Emacs{
 				Aliases: map[string]string{},
 			},
+			wantOK:      true,
 			wantResp:    &commands.ExecutorResponse{},
 			wantChanged: true,
 		},
@@ -365,31 +377,32 @@ func TestEmacsExecution(t *testing.T) {
 					"4":    "2+2",
 				},
 			},
-			args: []string{"d", "salt", "settlement", "5", "4"},
+			args:   []string{"d", "salt", "settlement", "5", "4"},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"city": "catan/oreAndWheat",
 				},
 			},
-			wantResp: &commands.ExecutorResponse{
-				Stderr: []string{
-					`alias "settlement" does not exist`,
-					`alias "5" does not exist`,
-				},
+			wantResp: &commands.ExecutorResponse{},
+			wantStderr: []string{
+				`alias "settlement" does not exist`,
+				`alias "5" does not exist`,
 			},
 			wantChanged: true,
 		},
 		// ListAliases tests
 		{
-			name:    "error when too many arguments",
-			args:    []string{"l", "extra"},
-			wantErr: "extra unknown args ([extra])",
+			name:       "error when too many arguments",
+			args:       []string{"l", "extra"},
+			wantStderr: []string{"extra unknown args ([extra])"},
 		},
 		{
 			name:     "no output for nil aliases",
 			args:     []string{"l"},
 			e:        &Emacs{},
 			want:     &Emacs{},
+			wantOK:   true,
 			wantResp: &commands.ExecutorResponse{},
 		},
 		{
@@ -401,6 +414,7 @@ func TestEmacsExecution(t *testing.T) {
 			want: &Emacs{
 				Aliases: map[string]string{},
 			},
+			wantOK:   true,
 			wantResp: &commands.ExecutorResponse{},
 		},
 		{
@@ -413,6 +427,7 @@ func TestEmacsExecution(t *testing.T) {
 					"4":    "2+2",
 				},
 			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -420,12 +435,11 @@ func TestEmacsExecution(t *testing.T) {
 					"4":    "2+2",
 				},
 			},
-			wantResp: &commands.ExecutorResponse{
-				Stdout: []string{
-					"4: 2+2",
-					"city: catan/oreAndWheat",
-					"salt: compounds/sodiumChloride",
-				},
+			wantResp: &commands.ExecutorResponse{},
+			wantStdout: []string{
+				"4: 2+2",
+				"city: catan/oreAndWheat",
+				"salt: compounds/sodiumChloride",
 			},
 		},
 	} {
@@ -438,19 +452,20 @@ func TestEmacsExecution(t *testing.T) {
 			filepathAbs = func(string) (string, error) { return test.absolutePath, test.absolutePathErr }
 			defer func() { filepathAbs = oldAbs }()
 
-			got, err := test.e.Command().Execute(test.args)
-			if err != nil && test.wantErr == "" {
-				t.Fatalf("Execute(%v) returned error (%v); want nil", test.args, err)
+			tcos := &commands.TestCommandOS{}
+			got, ok := commands.Execute(tcos, test.e.Command(), test.args)
+			if ok != test.wantOK {
+				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
-			if err == nil && test.wantErr != "" {
-				t.Fatalf("Execute(%v) returned nil; want error (%v)", test.args, test.wantErr)
-			}
-			if err != nil && test.wantErr != "" && !strings.Contains(err.Error(), test.wantErr) {
-				t.Fatalf("Execute(%v) returned error (%v); want (%v)", test.args, err, test.wantErr)
-			}
-
 			if diff := cmp.Diff(test.wantResp, got); diff != "" {
 				t.Fatalf("Execute(%v) produced response diff (-want, +got):\n%s", test.args, diff)
+			}
+
+			if diff := cmp.Diff(test.wantStdout, tcos.GetStdout()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stdout diff (-want, +got):\n%s", test.args, diff)
+			}
+			if diff := cmp.Diff(test.wantStderr, tcos.GetStderr()); diff != "" {
+				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
 			}
 
 			if diff := cmp.Diff(test.want, test.e, cmpopts.IgnoreUnexported(Emacs{})); diff != "" {

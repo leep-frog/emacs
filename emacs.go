@@ -32,26 +32,29 @@ type Emacs struct {
 }
 
 // AddAlias creates a new emacs alias.
-func (e *Emacs) AddAlias(args, flags map[string]*commands.Value) (*commands.ExecutorResponse, error) {
+func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
 	alias := *args[aliasArg].String()
 	filename := *args[fileArg].String()
 
 	if f, ok := e.Aliases[alias]; ok {
-		// TODO: just return stderr?
-		return nil, fmt.Errorf("alias already defined: (%s: %s)", alias, f)
+		cos.Stderr("alias already defined: (%s: %s)", alias, f)
+		return nil, false
 	}
 
 	fileInfo, err := osStat(filename)
 	if err != nil {
-		return nil, fmt.Errorf("error with file: %v", err)
+		cos.Stderr("error with file: %v", err)
+		return nil, false
 	}
 	if fileInfo.Mode().IsDir() {
-		return nil, fmt.Errorf("%s is a directory", filename)
+		cos.Stderr("%s is a directory", filename)
+		return nil, false
 	}
 
 	absPath, err := filepathAbs(filename)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get absolute file path: %v", err)
+		cos.Stderr("failed to get absolute file path: %v", err)
+		return nil, false
 	}
 
 	if e.Aliases == nil {
@@ -60,48 +63,37 @@ func (e *Emacs) AddAlias(args, flags map[string]*commands.Value) (*commands.Exec
 
 	e.Aliases[alias] = absPath
 	e.changed = true
-	return &commands.ExecutorResponse{}, nil
+	return &commands.ExecutorResponse{}, true
 }
 
 // DeleteAliases removes an existing emacs alias.
-func (e *Emacs) DeleteAliases(args, flags map[string]*commands.Value) (*commands.ExecutorResponse, error) {
+func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
 	aliases := *args[aliasArg].StringList()
-	errors := make([]string, 0, len(aliases))
 	for _, alias := range aliases {
-		// TODO: check if Aliases is nil?
 		if _, ok := e.Aliases[alias]; !ok {
-			errors = append(errors, fmt.Sprintf("alias %q does not exist", alias))
+			cos.Stderr("alias %q does not exist", alias)
 		} else {
 			delete(e.Aliases, alias)
 			e.changed = true
 		}
 	}
 
-	resp := &commands.ExecutorResponse{}
-	if len(errors) > 0 {
-		resp.Stderr = errors
-	}
-	return resp, nil
+	return &commands.ExecutorResponse{}, true
 }
 
 // ListAliases removes an existing emacs alias.
-func (e *Emacs) ListAliases(_, _ map[string]*commands.Value) (*commands.ExecutorResponse, error) {
+func (e *Emacs) ListAliases(cos commands.CommandOS, _, _ map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
 	keys := make([]string, 0, len(e.Aliases))
 	for k := range e.Aliases {
 		keys = append(keys, k)
 	}
 	sort.Strings(keys)
 
-	output := make([]string, 0, len(keys))
 	for _, k := range keys {
-		output = append(output, fmt.Sprintf("%s: %s", k, e.Aliases[k]))
+		cos.Stdout("%s: %s", k, e.Aliases[k])
 	}
 
-	resp := &commands.ExecutorResponse{}
-	if len(output) > 0 {
-		resp.Stdout = output
-	}
-	return resp, nil
+	return &commands.ExecutorResponse{}, true
 }
 
 // Name returns the name of the CLI.
@@ -133,7 +125,7 @@ type fileOpts struct {
 }
 
 // OpenEditor constructs an emacs command to open the specified files.
-func (e *Emacs) OpenEditor(args, flags map[string]*commands.Value) (*commands.ExecutorResponse, error) {
+func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
 	ergs := *args[emacsArg].StringList()
 
 	files := make([]*fileOpts, 0, len(ergs))
@@ -162,6 +154,7 @@ func (e *Emacs) OpenEditor(args, flags map[string]*commands.Value) (*commands.Ex
 	command := make([]string, 0, 1+2*len(files))
 	command = append(command, "emacs")
 	command = append(command, "--no-window-system")
+	// TODO: reverse order
 	for _, f := range files {
 		if f.lineNumber != 0 {
 			command = append(command, fmt.Sprintf("+%d", f.lineNumber))
@@ -172,7 +165,7 @@ func (e *Emacs) OpenEditor(args, flags map[string]*commands.Value) (*commands.Ex
 			command = append(command, f.name)
 		}
 	}
-	return &commands.ExecutorResponse{Executable: command}, nil
+	return &commands.ExecutorResponse{Executable: command}, true
 }
 
 func (e *Emacs) Changed() bool {
@@ -182,8 +175,6 @@ func (e *Emacs) Changed() bool {
 type aliasFetcher struct {
 	emacs *Emacs
 }
-
-func (af *aliasFetcher) PrefixFilter() bool { return true }
 
 func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) *commands.Completion {
 	suggestions := make([]string, 0, len(af.emacs.Aliases))
