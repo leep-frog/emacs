@@ -11,7 +11,7 @@ import (
 	"sort"
 	"strconv"
 
-	"github.com/leep-frog/cli/commands"
+	"github.com/leep-frog/commands/commands"
 )
 
 const (
@@ -32,7 +32,7 @@ type Emacs struct {
 }
 
 // AddAlias creates a new emacs alias.
-func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
+func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	alias := *args[aliasArg].String()
 	filename := *args[fileArg].String()
 
@@ -67,7 +67,7 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 }
 
 // DeleteAliases removes an existing emacs alias.
-func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
+func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	aliases := *args[aliasArg].StringList()
 	for _, alias := range aliases {
 		if _, ok := e.Aliases[alias]; !ok {
@@ -82,7 +82,7 @@ func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*co
 }
 
 // ListAliases removes an existing emacs alias.
-func (e *Emacs) ListAliases(cos commands.CommandOS, _, _ map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
+func (e *Emacs) ListAliases(cos commands.CommandOS, _, _ map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	keys := make([]string, 0, len(e.Aliases))
 	for k := range e.Aliases {
 		keys = append(keys, k)
@@ -125,7 +125,7 @@ type fileOpts struct {
 }
 
 // OpenEditor constructs an emacs command to open the specified files.
-func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*commands.Value) (*commands.ExecutorResponse, bool) {
+func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	ergs := *args[emacsArg].StringList()
 
 	files := make([]*fileOpts, 0, len(ergs))
@@ -171,6 +171,8 @@ func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*command
 func (e *Emacs) Changed() bool {
 	return e.changed
 }
+
+func (e *Emacs) Option() *commands.OptionInfo { return nil }
 
 type aliasFetcher struct {
 	emacs *Emacs

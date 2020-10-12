@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/leep-frog/cli/commands"
+	"github.com/leep-frog/commands/commands"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -453,7 +453,7 @@ func TestEmacsExecution(t *testing.T) {
 			defer func() { filepathAbs = oldAbs }()
 
 			tcos := &commands.TestCommandOS{}
-			got, ok := commands.Execute(tcos, test.e.Command(), test.args)
+			got, ok := commands.Execute(tcos, test.e.Command(), test.args, nil)
 			if ok != test.wantOK {
 				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}

@@ -1,15 +1,6 @@
 github.com/google/go-cmp v0.5.2 h1:X2ev0eStA3AbceY54o37/0PQ/UWqKEiiO2dKL5OPaFM=
 github.com/google/go-cmp v0.5.2/go.mod h1:v8dTdLbMG2kIc/vJvl+f65V22dbkXbowE6jgT/gNBxE=
-github.com/leep-frog/cli v0.0.0-20201005182219-4edb892c2c92 h1:IFahpGN+TYyjXk/CrgPhbno/S/wxxCXOiu4olptVs+I=
-github.com/leep-frog/cli v0.0.0-20201005182219-4edb892c2c92/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
-github.com/leep-frog/cli v0.0.0-20201005191804-77f90a1a3357 h1:d7mRzaNppMhF4q0wIkx/UHJF1aea8AnjQY5299GMKmg=
-github.com/leep-frog/cli v0.0.0-20201005191804-77f90a1a3357/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
-github.com/leep-frog/cli v0.0.0-20201006162622-61df0ec5e6b1 h1:6Rw/rsXxciTKmRTD/6VDoG3pdIe4GPN8ypIKNIXhD6E=
-github.com/leep-frog/cli v0.0.0-20201006162622-61df0ec5e6b1/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
-github.com/leep-frog/cli v0.0.0-20201006184440-9280f937cea2 h1:mEP8zHF21CUWCRrJqY6zqav5BOltjNmnk5Nbqctkr4I=
-github.com/leep-frog/cli v0.0.0-20201006184440-9280f937cea2/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
-github.com/leep-frog/cli v0.0.0-20201009173411-a92f93b62881 h1:2+p4SUmhPnRRNUQri0htaQrmGZSc71rXk+aTgBDvtjU=
-github.com/leep-frog/cli v0.0.0-20201009173411-a92f93b62881/go.mod h1:nAzQglxMhDGhOb9FI78aIZARfRb73m8XB8te/z38M5E=
-github.com/leep-frog/cli v1.0.0 h1:7hwdXoc9IT6e7pQemdhiah8RLNs6APJXJDE2Sz1k3W4=
+github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655 h1:9XQIxdufniZlWKWObVWekCUOU5HVKBlAa4cHATecB+E=
+github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655/go.mod h1:JiPTp+skgvKR98FS3nl6mdtzA2pB6BEFra2YR7XkMKA=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
