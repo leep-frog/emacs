@@ -172,7 +172,7 @@ func (e *Emacs) Changed() bool {
 	return e.changed
 }
 
-func (e *Emacs) Option() *commands.OptionInfo { return nil }
+func (e *Emacs) Option() *commands.Option { return nil }
 
 type aliasFetcher struct {
 	emacs *Emacs
