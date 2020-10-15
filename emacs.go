@@ -63,7 +63,7 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 
 	e.Aliases[alias] = absPath
 	e.changed = true
-	return &commands.ExecutorResponse{}, true
+	return nil, true
 }
 
 // DeleteAliases removes an existing emacs alias.
@@ -78,7 +78,7 @@ func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*co
 		}
 	}
 
-	return &commands.ExecutorResponse{}, true
+	return nil, true
 }
 
 // ListAliases removes an existing emacs alias.
@@ -93,7 +93,7 @@ func (e *Emacs) ListAliases(cos commands.CommandOS, _, _ map[string]*commands.Va
 		cos.Stdout("%s: %s", k, e.Aliases[k])
 	}
 
-	return &commands.ExecutorResponse{}, true
+	return nil, true
 }
 
 // Name returns the name of the CLI.
@@ -155,7 +155,8 @@ func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*command
 	command = append(command, "emacs")
 	command = append(command, "--no-window-system")
 	// TODO: reverse order
-	for _, f := range files {
+	for i := len(files) - 1; i >= 0; i-- {
+		f := files[i]
 		if f.lineNumber != 0 {
 			command = append(command, fmt.Sprintf("+%d", f.lineNumber))
 		}

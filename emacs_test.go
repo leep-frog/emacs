@@ -166,10 +166,10 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
-					"first.txt",
-					"compounds/sodiumChloride",
-					"catan/oreAndWheat",
 					"fourth.go",
+					"catan/oreAndWheat",
+					"compounds/sodiumChloride",
+					"first.txt",
 				},
 			},
 		},
@@ -193,10 +193,10 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
-					"first.txt",
+					"fourth.go",
 					"+32",
 					"compounds/sodiumChloride",
-					"fourth.go",
+					"first.txt",
 				},
 			},
 		},
@@ -220,9 +220,9 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
+					"14",
 					"+32",
 					"compounds/sodiumChloride",
-					"14",
 				},
 			},
 		},
@@ -294,7 +294,6 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "compounds/sodiumChloride",
 				},
 			},
-			wantResp:    &commands.ExecutorResponse{},
 			wantChanged: true,
 		},
 		{
@@ -311,7 +310,6 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "compounds/sodiumChloride",
 				},
 			},
-			wantResp:    &commands.ExecutorResponse{},
 			wantChanged: true,
 		},
 		{
@@ -333,7 +331,6 @@ func TestEmacsExecution(t *testing.T) {
 					"salt":  "compounds/sodiumChloride",
 				},
 			},
-			wantResp:    &commands.ExecutorResponse{},
 			wantChanged: true,
 		},
 		// DeleteAliases tests
@@ -350,7 +347,6 @@ func TestEmacsExecution(t *testing.T) {
 			args:       []string{"d", "salt"},
 			want:       &Emacs{},
 			wantOK:     true,
-			wantResp:   &commands.ExecutorResponse{},
 			wantStderr: []string{`alias "salt" does not exist`},
 		},
 		{
@@ -365,7 +361,6 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]string{},
 			},
 			wantOK:      true,
-			wantResp:    &commands.ExecutorResponse{},
 			wantChanged: true,
 		},
 		{
@@ -384,7 +379,6 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			wantResp: &commands.ExecutorResponse{},
 			wantStderr: []string{
 				`alias "settlement" does not exist`,
 				`alias "5" does not exist`,
@@ -398,12 +392,11 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"extra unknown args ([extra])"},
 		},
 		{
-			name:     "no output for nil aliases",
-			args:     []string{"l"},
-			e:        &Emacs{},
-			want:     &Emacs{},
-			wantOK:   true,
-			wantResp: &commands.ExecutorResponse{},
+			name:   "no output for nil aliases",
+			args:   []string{"l"},
+			e:      &Emacs{},
+			want:   &Emacs{},
+			wantOK: true,
 		},
 		{
 			name: "no output for empty aliases",
@@ -414,8 +407,7 @@ func TestEmacsExecution(t *testing.T) {
 			want: &Emacs{
 				Aliases: map[string]string{},
 			},
-			wantOK:   true,
-			wantResp: &commands.ExecutorResponse{},
+			wantOK: true,
 		},
 		{
 			name: "proper output for aliases",
@@ -435,7 +427,6 @@ func TestEmacsExecution(t *testing.T) {
 					"4":    "2+2",
 				},
 			},
-			wantResp: &commands.ExecutorResponse{},
 			wantStdout: []string{
 				"4: 2+2",
 				"city: catan/oreAndWheat",
