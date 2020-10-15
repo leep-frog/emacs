@@ -154,7 +154,6 @@ func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*command
 	command := make([]string, 0, 1+2*len(files))
 	command = append(command, "emacs")
 	command = append(command, "--no-window-system")
-	// TODO: reverse order
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
 		if f.lineNumber != 0 {

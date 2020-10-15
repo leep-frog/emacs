@@ -80,7 +80,6 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
-				" ",
 			},
 		},
 		{
@@ -92,8 +91,6 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
-				// TODO: shouldn't have this
-				" ",
 			},
 		},
 		// aliasFetcher tests
