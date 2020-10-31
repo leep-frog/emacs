@@ -3,6 +3,7 @@ package emacs
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -127,6 +128,8 @@ func TestEmacsExecution(t *testing.T) {
 		osStatErr       error
 		absolutePath    string
 		absolutePathErr error
+		osGetwd         string
+		osGetwdErr      error
 	}{
 		// OpenEditor tests
 		{
@@ -144,6 +147,18 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"extra unknown args ([file5])"},
 		},
 		{
+			name:       "doesn't set previous execution on getwd error",
+			e:          &Emacs{},
+			args:       []string{"file1", "file2"},
+			osGetwdErr: fmt.Errorf("uh oh"),
+			want:       &Emacs{},
+			wantStderr: []string{"failed to get current directory: uh oh"},
+			wantOK:     true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{"emacs", "--no-window-system", "file2", "file1"},
+			},
+		},
+		{
 			name: "handles files and alises",
 			e: &Emacs{
 				Aliases: map[string]string{
@@ -151,12 +166,24 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:   []string{"first.txt", "salt", "city", "fourth.go"},
-			wantOK: true,
+			args:        []string{"first.txt", "salt", "city", "fourth.go"},
+			osGetwd:     "current/dir",
+			wantOK:      true,
+			wantChanged: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
+				},
+				PreviousExecution: &commands.ExecutorResponse{
+					Executable: []string{
+						"emacs",
+						"--no-window-system",
+						filepath.Join("current/dir", "fourth.go"),
+						"catan/oreAndWheat",
+						"compounds/sodiumChloride",
+						filepath.Join("current/dir", "first.txt"),
+					},
 				},
 			},
 			wantResp: &commands.ExecutorResponse{
@@ -178,12 +205,24 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:   []string{"first.txt", "salt", "32", "fourth.go"},
-			wantOK: true,
+			args:        []string{"first.txt", "salt", "32", "fourth.go"},
+			osGetwd:     "home",
+			wantOK:      true,
+			wantChanged: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
+				},
+				PreviousExecution: &commands.ExecutorResponse{
+					Executable: []string{
+						"emacs",
+						"--no-window-system",
+						filepath.Join("home", "fourth.go"),
+						"+32",
+						"compounds/sodiumChloride",
+						filepath.Join("home", "first.txt"),
+					},
 				},
 			},
 			wantResp: &commands.ExecutorResponse{
@@ -205,12 +244,23 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:   []string{"salt", "32", "14"},
-			wantOK: true,
+			args:        []string{"salt", "32", "14"},
+			osGetwd:     "here",
+			wantOK:      true,
+			wantChanged: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
+				},
+				PreviousExecution: &commands.ExecutorResponse{
+					Executable: []string{
+						"emacs",
+						"--no-window-system",
+						filepath.Join("here", "14"),
+						"+32",
+						"compounds/sodiumChloride",
+					},
 				},
 			},
 			wantResp: &commands.ExecutorResponse{
@@ -439,6 +489,10 @@ func TestEmacsExecution(t *testing.T) {
 			oldAbs := filepathAbs
 			filepathAbs = func(string) (string, error) { return test.absolutePath, test.absolutePathErr }
 			defer func() { filepathAbs = oldAbs }()
+
+			oldGetwd := osGetwd
+			osGetwd = func() (string, error) { return test.osGetwd, test.osGetwdErr }
+			defer func() { osGetwd = oldGetwd }()
 
 			tcos := &commands.TestCommandOS{}
 			got, ok := commands.Execute(tcos, test.e.Command(), test.args, nil)

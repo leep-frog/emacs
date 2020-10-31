@@ -21,14 +21,16 @@ const (
 )
 
 var (
+	osGetwd     = os.Getwd
 	osStat      = os.Stat
 	filepathAbs = filepath.Abs
 )
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases map[string]string
-	changed bool
+	Aliases           map[string]string
+	PreviousExecution *commands.ExecutorResponse
+	changed           bool
 }
 
 // AddAlias creates a new emacs alias.
@@ -125,7 +127,7 @@ type fileOpts struct {
 }
 
 // OpenEditor constructs an emacs command to open the specified files.
-func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
+func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	ergs := *args[emacsArg].StringList()
 
 	files := make([]*fileOpts, 0, len(ergs))
@@ -154,6 +156,7 @@ func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*command
 	command := make([]string, 0, 1+2*len(files))
 	command = append(command, "emacs")
 	command = append(command, "--no-window-system")
+	fileIdxs := make([]int, 0, len(files))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
 		if f.lineNumber != 0 {
@@ -163,8 +166,23 @@ func (e *Emacs) OpenEditor(_ commands.CommandOS, args, flags map[string]*command
 			command = append(command, name)
 		} else {
 			command = append(command, f.name)
+			// Don't set this for aliases because those are already absolute paths.
+			fileIdxs = append(fileIdxs, len(command)-1)
 		}
 	}
+
+	if cwd, err := osGetwd(); err != nil {
+		cos.Stderr("failed to get current directory: %v", err)
+	} else {
+		absCommand := make([]string, len(command))
+		copy(absCommand, command)
+		for _, idx := range fileIdxs {
+			absCommand[idx] = filepath.Join(cwd, command[idx])
+		}
+		e.changed = true
+		e.PreviousExecution = &commands.ExecutorResponse{Executable: absCommand}
+	}
+
 	return &commands.ExecutorResponse{Executable: command}, true
 }
 
