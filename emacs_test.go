@@ -84,6 +84,14 @@ func TestAutocomplete(t *testing.T) {
 			},
 		},
 		{
+			name: "file suggestions ignore case",
+			args: []string{"EmA"},
+			want: []string{
+				"emacs.go",
+				"emacs_test.go",
+			},
+		},
+		{
 			name: "suggests only files after first command",
 			args: []string{"file1.txt", ""},
 			want: []string{
