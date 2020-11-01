@@ -118,6 +118,7 @@ func TestEmacsExecution(t *testing.T) {
 		name            string
 		e               *Emacs
 		args            []string
+		limitOverride   int
 		want            *Emacs
 		wantOK          bool
 		wantResp        *commands.ExecutorResponse
@@ -173,14 +174,16 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
 				},
-				PreviousExecution: &commands.ExecutorResponse{
-					Executable: []string{
-						"emacs",
-						"--no-window-system",
-						filepath.Join("current/dir", "fourth.go"),
-						"catan/oreAndWheat",
-						"compounds/sodiumChloride",
-						filepath.Join("current/dir", "first.txt"),
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							filepath.Join("current/dir", "fourth.go"),
+							"catan/oreAndWheat",
+							"compounds/sodiumChloride",
+							filepath.Join("current/dir", "first.txt"),
+						},
 					},
 				},
 			},
@@ -211,14 +214,16 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
 				},
-				PreviousExecution: &commands.ExecutorResponse{
-					Executable: []string{
-						"emacs",
-						"--no-window-system",
-						filepath.Join("home", "fourth.go"),
-						"+32",
-						"compounds/sodiumChloride",
-						filepath.Join("home", "first.txt"),
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							filepath.Join("home", "fourth.go"),
+							"+32",
+							"compounds/sodiumChloride",
+							filepath.Join("home", "first.txt"),
+						},
 					},
 				},
 			},
@@ -249,13 +254,15 @@ func TestEmacsExecution(t *testing.T) {
 					"salt": "compounds/sodiumChloride",
 					"city": "catan/oreAndWheat",
 				},
-				PreviousExecution: &commands.ExecutorResponse{
-					Executable: []string{
-						"emacs",
-						"--no-window-system",
-						filepath.Join("here", "14"),
-						"+32",
-						"compounds/sodiumChloride",
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							filepath.Join("here", "14"),
+							"+32",
+							"compounds/sodiumChloride",
+						},
 					},
 				},
 			},
@@ -266,6 +273,191 @@ func TestEmacsExecution(t *testing.T) {
 					"14",
 					"+32",
 					"compounds/sodiumChloride",
+				},
+			},
+		},
+		{
+			name: "adds to previous executions",
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+				},
+			},
+			args:   []string{"luckyNumberThree"},
+			wantOK: true,
+			want: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"luckyNumberThree",
+						},
+					},
+				},
+			},
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"luckyNumberThree",
+				},
+			},
+		},
+		{
+			name:          "reduces size of previous executions if at limit",
+			limitOverride: 2,
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+				},
+			},
+			args:   []string{"luckyNumberThree"},
+			wantOK: true,
+			want: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"luckyNumberThree",
+						},
+					},
+				},
+			},
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"luckyNumberThree",
+				},
+			},
+		},
+		{
+			name:          "reduces size of previous executions if over limit",
+			limitOverride: 2,
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"3rdFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"FourthFile",
+						},
+					},
+				},
+			},
+			args:   []string{"luckyNumberFive"},
+			wantOK: true,
+			want: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"FourthFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"luckyNumberFive",
+						},
+					},
+				},
+			},
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"luckyNumberFive",
 				},
 			},
 		},
@@ -463,6 +655,12 @@ func TestEmacsExecution(t *testing.T) {
 			oldGetwd := osGetwd
 			osGetwd = func() (string, error) { return test.osGetwd, test.osGetwdErr }
 			defer func() { osGetwd = oldGetwd }()
+
+			if test.limitOverride != 0 {
+				oldLimit := historyLimit
+				historyLimit = test.limitOverride
+				defer func() { historyLimit = oldLimit }()
+			}
 
 			tcos := &commands.TestCommandOS{}
 			got, ok := commands.Execute(tcos, test.e.Command(), test.args, nil)

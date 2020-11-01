@@ -24,13 +24,15 @@ var (
 	osGetwd     = os.Getwd
 	osStat      = os.Stat
 	filepathAbs = filepath.Abs
+	// This is in the var section so it can be stubbed out for tests.
+	historyLimit = 25
 )
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases           map[string]string
-	PreviousExecution *commands.ExecutorResponse
-	changed           bool
+	Aliases            map[string]string
+	PreviousExecutions []*commands.ExecutorResponse
+	changed            bool
 }
 
 // AddAlias creates a new emacs alias.
@@ -180,7 +182,10 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 			absCommand[idx] = filepath.Join(cwd, command[idx])
 		}
 		e.changed = true
-		e.PreviousExecution = &commands.ExecutorResponse{Executable: absCommand}
+		e.PreviousExecutions = append(e.PreviousExecutions, &commands.ExecutorResponse{Executable: absCommand})
+		if len(e.PreviousExecutions) > historyLimit {
+			e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
+		}
 	}
 
 	return &commands.ExecutorResponse{Executable: command}, true
