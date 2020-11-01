@@ -10,14 +10,16 @@ import (
 	"path/filepath"
 	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/leep-frog/commands/commands"
 )
 
 const (
-	aliasArg = "ALIAS"
-	fileArg  = "FILE"
-	emacsArg = "EMACS_ARG"
+	aliasArg      = "ALIAS"
+	fileArg       = "FILE"
+	emacsArg      = "EMACS_ARG"
+	historicalArg = "COMMAND_IDX"
 )
 
 var (
@@ -128,6 +130,27 @@ type fileOpts struct {
 	lineNumber int
 }
 
+// RunHistorical runs a previous command
+func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
+	if args[historicalArg].Int() == nil {
+		// print and return
+		for idx, pe := range e.PreviousExecutions {
+			revIdx := len(e.PreviousExecutions) - 1 - idx
+			cos.Stdout(fmt.Sprintf("%2d: %s", revIdx, strings.Join(pe.Executable, " ")))
+		}
+		return nil, true
+	}
+
+	idx := *args[historicalArg].Int()
+	// TODO: can this check be dynamic option (like IntNonNegative)?
+	if idx >= len(e.PreviousExecutions) {
+		cos.Stderr("%s is larger than list of stored commands", historicalArg)
+		return nil, false
+	}
+
+	return e.PreviousExecutions[len(e.PreviousExecutions)-1-idx], true
+}
+
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	var ergs []string
@@ -136,7 +159,7 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	}
 
 	if len(ergs) == 0 {
-		if e == nil || len(e.PreviousExecutions) == 0 {
+		if len(e.PreviousExecutions) == 0 {
 			cos.Stderr("no previous executions")
 			return nil, false
 		}
@@ -264,6 +287,13 @@ func (e *Emacs) Command() commands.Command {
 			// ListAliases
 			"l": &commands.TerminusCommand{
 				Executor: e.ListAliases,
+			},
+			// Run earlier command
+			"h": &commands.TerminusCommand{
+				Executor: e.RunHistorical,
+				Args: []commands.Arg{
+					commands.IntArg(historicalArg, false, nil, commands.IntNonNegative()),
+				},
 			},
 		},
 	}

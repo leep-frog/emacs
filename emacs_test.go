@@ -453,12 +453,6 @@ func TestEmacsExecution(t *testing.T) {
 			},
 		},
 		{
-			name: "if nil emacs and no arguments, error",
-			wantStderr: []string{
-				"no previous executions",
-			},
-		},
-		{
 			name: "if empty PreviousExecutions and no arguments, error",
 			e: &Emacs{
 				PreviousExecutions: []*commands.ExecutorResponse{},
@@ -727,6 +721,210 @@ func TestEmacsExecution(t *testing.T) {
 				"salt: compounds/sodiumChloride",
 			},
 		},
+		// RunHistorical
+		{
+			name: "prints historical commands if no index given",
+			args: []string{"h"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2nd", "File",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"File", "three",
+						},
+					},
+				},
+			},
+			wantOK: true,
+			wantStdout: []string{
+				" 2: emacs --no-window-system firstFile",
+				" 1: emacs --no-window-system 2nd File",
+				" 0: emacs --no-window-system File three",
+			},
+		},
+		{
+			name: "historical fails if negative idx",
+			args: []string{"h", "-1"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2nd", "File",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"File", "three",
+						},
+					},
+				},
+			},
+			wantStderr: []string{
+				// TODO: modify commands package to produce a better message here.
+				"failed to process args: failed to convert value: validation failed: [IntNonNegative] value isn't non-negative",
+			},
+		},
+		{
+			name: "historical fails if index is too large",
+			args: []string{"h", "3"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2nd", "File",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"File", "three",
+						},
+					},
+				},
+			},
+			wantStderr: []string{
+				fmt.Sprintf("%s is larger than list of stored commands", historicalArg),
+			},
+		},
+		{
+			name: "historical returns 0 index",
+			args: []string{"h", "0"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2nd", "File",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"File", "three",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"fourth",
+						},
+					},
+				},
+			},
+			wantOK: true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"fourth",
+				},
+			},
+		},
+		{
+			name: "historical returns 0 index",
+			args: []string{"h", "2"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2nd", "File",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"File", "three",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"fourth",
+						},
+					},
+				},
+			},
+			wantOK: true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"2nd", "File",
+				},
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			oldStat := osStat
@@ -792,10 +990,11 @@ func (fi fakeFileInfo) Sys() interface{}   { return nil }
 func TestUsage(t *testing.T) {
 	e := &Emacs{}
 	wantUsage := []string{
-		"a", "ALIAS", "FILE", "\n",
-		"d", "ALIAS", "[ALIAS ...]", "\n",
+		"a", aliasArg, fileArg, "\n",
+		"d", aliasArg, fmt.Sprintf("[%s ...]", aliasArg), "\n",
+		"h", "[", historicalArg, "]", "\n",
 		"l", "\n",
-		"[", "EMACS_ARG", "EMACS_ARG", "EMACS_ARG", "EMACS_ARG", "]",
+		"[", emacsArg, emacsArg, emacsArg, emacsArg, "]",
 	}
 	usage := e.Command().Usage()
 	if diff := cmp.Diff(wantUsage, usage); diff != "" {
