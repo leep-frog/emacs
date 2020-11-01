@@ -130,7 +130,18 @@ type fileOpts struct {
 
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	ergs := *args[emacsArg].StringList()
+	var ergs []string
+	if ptr := args[emacsArg].StringList(); ptr != nil {
+		ergs = *ptr
+	}
+
+	if len(ergs) == 0 {
+		if e == nil || len(e.PreviousExecutions) == 0 {
+			cos.Stderr("no previous executions")
+			return nil, false
+		}
+		return e.PreviousExecutions[len(e.PreviousExecutions)-1], true
+	}
 
 	files := make([]*fileOpts, 0, len(ergs))
 	var fo *fileOpts
@@ -224,7 +235,7 @@ func (e *Emacs) Command() commands.Command {
 			Args: []commands.Arg{
 				// TODO filename for first command
 				// any for second
-				commands.StringListArg(emacsArg, 1, 3, completor),
+				commands.StringListArg(emacsArg, 0, 4, completor),
 			},
 		},
 		Subcommands: map[string]commands.Command{

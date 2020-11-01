@@ -134,15 +134,6 @@ func TestEmacsExecution(t *testing.T) {
 	}{
 		// OpenEditor tests
 		{
-			name:       "handles nil args",
-			wantStderr: []string{`no argument provided for "EMACS_ARG"`},
-		},
-		{
-			name:       "handles empty args",
-			args:       []string{},
-			wantStderr: []string{`no argument provided for "EMACS_ARG"`},
-		},
-		{
 			name:       "error when too many arguments",
 			args:       []string{"file1", "file2", "file3", "file4", "file5"},
 			wantStderr: []string{"extra unknown args ([file5])"},
@@ -461,6 +452,100 @@ func TestEmacsExecution(t *testing.T) {
 				},
 			},
 		},
+		{
+			name: "if nil emacs and no arguments, error",
+			wantStderr: []string{
+				"no previous executions",
+			},
+		},
+		{
+			name: "if empty PreviousExecutions and no arguments, error",
+			e: &Emacs{
+				PreviousExecutions: []*commands.ExecutorResponse{},
+			},
+			wantStderr: []string{
+				"no previous executions",
+			},
+		},
+		{
+			name: "if nil argument, run last command",
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"3rdFile",
+						},
+					},
+				},
+			},
+			wantOK: true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"3rdFile",
+				},
+			},
+		},
+		{
+			name: "if empty arguments, run last command",
+			args: []string{},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"city": "catan/oreAndWheat",
+				},
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"firstFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"2ndFile",
+						},
+					},
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"3rdFile",
+						},
+					},
+				},
+			},
+			wantOK: true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"3rdFile",
+				},
+			},
+		},
 		// AddAlias tests
 		{
 			name:       "fails if no alias",
@@ -710,7 +795,7 @@ func TestUsage(t *testing.T) {
 		"a", "ALIAS", "FILE", "\n",
 		"d", "ALIAS", "[ALIAS ...]", "\n",
 		"l", "\n",
-		"EMACS_ARG", "[", "EMACS_ARG", "EMACS_ARG", "EMACS_ARG", "]",
+		"[", "EMACS_ARG", "EMACS_ARG", "EMACS_ARG", "EMACS_ARG", "]",
 	}
 	usage := e.Command().Usage()
 	if diff := cmp.Diff(wantUsage, usage); diff != "" {
