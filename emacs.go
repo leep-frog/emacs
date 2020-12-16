@@ -166,6 +166,16 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 		return e.PreviousExecutions[len(e.PreviousExecutions)-1], true
 	}
 
+	// If only a directory was provided, then just cd into the directory.
+	if len(ergs) == 1 {
+		fi, _ := osStat(ergs[0])
+		if fi != nil && fi.IsDir() {
+			return &commands.ExecutorResponse{
+				Executable: []string{"cd", ergs[0]},
+			}, true
+		}
+	}
+
 	files := make([]*fileOpts, 0, len(ergs))
 	var fo *fileOpts
 	for _, erg := range ergs {

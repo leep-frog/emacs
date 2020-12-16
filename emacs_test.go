@@ -156,6 +156,19 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"failed to get current directory: uh oh"},
 		},
 		{
+			name:       "cds into directory",
+			e:          &Emacs{},
+			args:       []string{"dirName"},
+			osStatInfo: &fakeFileInfo{mode: os.ModeDir},
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"cd",
+					"dirName",
+				},
+			},
+			wantOK: true,
+		},
+		{
 			name: "handles files and alises",
 			e: &Emacs{
 				Aliases: map[string]string{
