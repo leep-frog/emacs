@@ -81,14 +81,15 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				" ",
 			},
 		},
 		{
 			name: "file suggestions ignore case",
 			args: []string{"EmA"},
 			want: []string{
-				"emacs.go",
-				"emacs_test.go",
+				"emacs",
+				"emacs_",
 			},
 		},
 		{
@@ -100,6 +101,7 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				" ",
 			},
 		},
 		// aliasFetcher tests
@@ -147,15 +149,11 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"extra unknown args ([file5])"},
 		},
 		{
-			name:       "doesn't set previous execution on getwd error",
+			name:       "fails on getwd error",
 			e:          &Emacs{},
 			args:       []string{"file1", "file2"},
 			osGetwdErr: fmt.Errorf("uh oh"),
 			wantStderr: []string{"failed to get current directory: uh oh"},
-			wantOK:     true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{"emacs", "--no-window-system", "file2", "file1"},
-			},
 		},
 		{
 			name: "handles files and alises",
@@ -190,10 +188,10 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
-					"fourth.go",
+					filepath.Join("current/dir", "fourth.go"),
 					"catan/oreAndWheat",
 					"compounds/sodiumChloride",
-					"first.txt",
+					filepath.Join("current/dir", "first.txt"),
 				},
 			},
 		},
@@ -230,10 +228,10 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
-					"fourth.go",
+					filepath.Join("home", "fourth.go"),
 					"+32",
 					"compounds/sodiumChloride",
-					"first.txt",
+					filepath.Join("home", "first.txt"),
 				},
 			},
 		},
@@ -269,7 +267,7 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: []string{
 					"emacs",
 					"--no-window-system",
-					"14",
+					filepath.Join("here", "14"),
 					"+32",
 					"compounds/sodiumChloride",
 				},

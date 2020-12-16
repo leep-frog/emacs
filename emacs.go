@@ -189,37 +189,37 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 		files = append(files, fo)
 	}
 
-	command := make([]string, 0, 1+2*len(files))
-	command = append(command, "emacs")
-	command = append(command, "--no-window-system")
-	fileIdxs := make([]int, 0, len(files))
+	cwd, err := osGetwd()
+	if err != nil {
+		cos.Stderr("failed to get current directory: %v", err)
+		return nil, false
+	}
+
+	sortedFiles := make([]*fileOpts, 0, len(ergs))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
+		if name, ok := e.Aliases[f.name]; ok {
+			f.name = name
+		} else {
+			f.name = filepath.Join(cwd, f.name)
+		}
+		sortedFiles = append(sortedFiles, f)
+	}
+
+	command := make([]string, 0, 1+2*len(sortedFiles))
+	command = append(command, "emacs")
+	command = append(command, "--no-window-system")
+	for _, f := range sortedFiles {
 		if f.lineNumber != 0 {
 			command = append(command, fmt.Sprintf("+%d", f.lineNumber))
 		}
-		if name, ok := e.Aliases[f.name]; ok {
-			command = append(command, name)
-		} else {
-			command = append(command, f.name)
-			// Don't set this for aliases because those are already absolute paths.
-			fileIdxs = append(fileIdxs, len(command)-1)
-		}
+		command = append(command, f.name)
 	}
 
-	if cwd, err := osGetwd(); err != nil {
-		cos.Stderr("failed to get current directory: %v", err)
-	} else {
-		absCommand := make([]string, len(command))
-		copy(absCommand, command)
-		for _, idx := range fileIdxs {
-			absCommand[idx] = filepath.Join(cwd, command[idx])
-		}
-		e.changed = true
-		e.PreviousExecutions = append(e.PreviousExecutions, &commands.ExecutorResponse{Executable: absCommand})
-		if len(e.PreviousExecutions) > historyLimit {
-			e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
-		}
+	e.changed = true
+	e.PreviousExecutions = append(e.PreviousExecutions, &commands.ExecutorResponse{Executable: command})
+	if len(e.PreviousExecutions) > historyLimit {
+		e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
 	}
 
 	return &commands.ExecutorResponse{Executable: command}, true
