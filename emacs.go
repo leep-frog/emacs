@@ -47,13 +47,8 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 		return nil, false
 	}
 
-	fileInfo, err := osStat(filename)
-	if err != nil {
-		cos.Stderr("error with file: %v", err)
-		return nil, false
-	}
-	if fileInfo.Mode().IsDir() {
-		cos.Stderr("%s is a directory", filename)
+	if _, err := osStat(filename); os.IsNotExist(err) {
+		cos.Stderr("file does not exist: %v", err)
 		return nil, false
 	}
 

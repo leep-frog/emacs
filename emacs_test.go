@@ -586,18 +586,11 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"alias already defined: (salt: NaCl)"},
 		},
 		{
-			name:       "fails if osStat error",
+			name:       "fails if osStat is not exist error",
 			e:          &Emacs{},
 			args:       []string{"a", "salt", "sodiumChloride"},
-			osStatErr:  fmt.Errorf("broken"),
-			wantStderr: []string{"error with file: broken"},
-		},
-		{
-			name:       "fails if directory",
-			e:          &Emacs{},
-			args:       []string{"a", "salt", "sodiumChloride"},
-			osStatInfo: &fakeFileInfo{mode: os.ModeDir},
-			wantStderr: []string{"sodiumChloride is a directory"},
+			osStatErr:  os.ErrNotExist,
+			wantStderr: []string{"file does not exist: file does not exist"},
 		},
 		{
 			name:            "fails if can't get absolute path",
@@ -652,6 +645,19 @@ func TestEmacsExecution(t *testing.T) {
 					"other": "things",
 					"ab":    "cd",
 					"salt":  "compounds/sodiumChloride",
+				},
+			},
+		},
+		{
+			name:         "adds alias for directory",
+			e:            &Emacs{},
+			args:         []string{"a", "salt", "sodiumChloride"},
+			osStatInfo:   &fakeFileInfo{mode: os.ModeDir},
+			absolutePath: "compounds/sodiumChloride",
+			wantOK:       true,
+			want: &Emacs{
+				Aliases: map[string]string{
+					"salt": "compounds/sodiumChloride",
 				},
 			},
 		},
