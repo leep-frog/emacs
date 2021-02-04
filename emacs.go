@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -20,6 +21,7 @@ const (
 	fileArg       = "FILE"
 	emacsArg      = "EMACS_ARG"
 	historicalArg = "COMMAND_IDX"
+	regexpArg     = "REGEXP"
 )
 
 var (
@@ -37,6 +39,40 @@ type Emacs struct {
 	changed            bool
 }
 
+// GetAlias
+func (e *Emacs) GetAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
+	alias := *args[aliasArg].String()
+	f, ok := e.Aliases[alias]
+	if ok {
+		cos.Stdout("%s: %s", alias, f)
+	} else {
+		cos.Stderr("Alias %s does not exist", alias)
+	}
+	return nil, ok
+}
+
+// SearchAliases
+func (e *Emacs) SearchAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
+	searchRegex, err := regexp.Compile(*args[regexpArg].String())
+	if err != nil {
+		cos.Stderr("Invalid regexp: %v", err)
+		return nil, false
+	}
+
+	var as []string
+	for a := range e.Aliases {
+		as = append(as, a)
+	}
+	sort.Strings(as)
+	for _, a := range as {
+		f := e.Aliases[a]
+		if searchRegex.MatchString(f) {
+			cos.Stdout("%s: %s", a, f)
+		}
+	}
+	return nil, true
+}
+
 // AddAlias creates a new emacs alias.
 func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
 	alias := *args[aliasArg].String()
@@ -47,7 +83,7 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 		return nil, false
 	}
 
-	if _, err := osStat(filename); os.IsNotExist(err) {
+	if _, err := osStat(filename); err != nil {
 		cos.Stderr("file does not exist: %v", err)
 		return nil, false
 	}
@@ -292,6 +328,24 @@ func (e *Emacs) Command() commands.Command {
 			// ListAliases
 			"l": &commands.TerminusCommand{
 				Executor: e.ListAliases,
+			},
+			// GetAlias
+			"g": &commands.TerminusCommand{
+				Executor: e.GetAlias,
+				Args: []commands.Arg{
+					commands.StringArg(aliasArg, true, &commands.Completor{
+						SuggestionFetcher: &aliasFetcher{
+							emacs: e,
+						},
+					}),
+				},
+			},
+			// SearchAliases
+			"s": &commands.TerminusCommand{
+				Executor: e.SearchAliases,
+				Args: []commands.Arg{
+					commands.StringArg(regexpArg, true, nil),
+				},
 			},
 			// Run earlier command
 			"h": &commands.TerminusCommand{

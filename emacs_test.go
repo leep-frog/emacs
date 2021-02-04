@@ -113,6 +113,22 @@ func TestAutocomplete(t *testing.T) {
 				"salt",
 			},
 		},
+		// GetAlias
+		{
+			name: "suggests aliases for get",
+			args: []string{"g", ""},
+			want: []string{
+				"city",
+				"salt",
+			},
+		},
+		{
+			name: "completes partial alias for get",
+			args: []string{"g", "s"},
+			want: []string{
+				"salt",
+			},
+		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			suggestions := commands.Autocomplete(e.Command(), test.args, -1)
@@ -589,8 +605,8 @@ func TestEmacsExecution(t *testing.T) {
 			name:       "fails if osStat is not exist error",
 			e:          &Emacs{},
 			args:       []string{"a", "salt", "sodiumChloride"},
-			osStatErr:  os.ErrNotExist,
-			wantStderr: []string{"file does not exist: file does not exist"},
+			osStatErr:  fmt.Errorf("nope"),
+			wantStderr: []string{"file does not exist: nope"},
 		},
 		{
 			name:            "fails if can't get absolute path",
@@ -744,6 +760,64 @@ func TestEmacsExecution(t *testing.T) {
 				"4: 2+2",
 				"city: catan/oreAndWheat",
 				"salt: compounds/sodiumChloride",
+			},
+		},
+		// GetAlias
+		{
+			name: "GetAlias requires alias",
+			args: []string{"g"},
+			e:    &Emacs{},
+			wantStderr: []string{
+				fmt.Sprintf("no argument provided for %q", aliasArg),
+			},
+		},
+		{
+			name: "GetAlias works",
+			args: []string{"g", "salt"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"salt": "compounds/sodiumChloride",
+					"city": "catan/oreAndWheat",
+					"4":    "2+2",
+				},
+			},
+			wantOK: true,
+			wantStdout: []string{
+				"salt: compounds/sodiumChloride",
+			},
+		},
+		// SearchAliases
+		{
+			name: "SearchAlias requires regexp",
+			args: []string{"s"},
+			e:    &Emacs{},
+			wantStderr: []string{
+				fmt.Sprintf("no argument provided for %q", regexpArg),
+			},
+		},
+		{
+			name: "SearchAlias requires valid regexp",
+			args: []string{"s", "[a-9]"},
+			e:    &Emacs{},
+			wantStderr: []string{
+				"Invalid regexp: error parsing regexp: invalid character class range: `a-9`",
+			},
+		},
+		{
+			name: "SearchAlias works",
+			args: []string{"s", "compounds"},
+			e: &Emacs{
+				Aliases: map[string]string{
+					"water": "liquids/compounds/hydrogenDioxide",
+					"salt":  "compounds/sodiumChloride",
+					"city":  "catan/oreAndWheat",
+					"4":     "2+2",
+				},
+			},
+			wantOK: true,
+			wantStdout: []string{
+				"salt: compounds/sodiumChloride",
+				"water: liquids/compounds/hydrogenDioxide",
 			},
 		},
 		// RunHistorical
@@ -1017,8 +1091,10 @@ func TestUsage(t *testing.T) {
 	wantUsage := []string{
 		"a", aliasArg, fileArg, "\n",
 		"d", aliasArg, fmt.Sprintf("[%s ...]", aliasArg), "\n",
+		"g", aliasArg, "\n",
 		"h", "[", historicalArg, "]", "\n",
 		"l", "\n",
+		"s", regexpArg, "\n",
 		"[", emacsArg, emacsArg, emacsArg, emacsArg, "]",
 	}
 	usage := e.Command().Usage()
