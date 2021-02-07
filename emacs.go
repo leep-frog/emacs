@@ -22,6 +22,7 @@ const (
 	emacsArg      = "EMACS_ARG"
 	historicalArg = "COMMAND_IDX"
 	regexpArg     = "REGEXP"
+	newFileArg    = "new"
 )
 
 var (
@@ -46,7 +47,7 @@ func (e *Emacs) GetAlias(cos commands.CommandOS, args, flags map[string]*command
 	if ok {
 		cos.Stdout("%s: %s", alias, f)
 	} else {
-		cos.Stderr("Alias %s does not exist", alias)
+		cos.Stderr("Alias %q does not exist", alias)
 	}
 	return nil, ok
 }
@@ -184,6 +185,7 @@ func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*co
 
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
+	allowNewFiles := flags[newFileArg].Bool() != nil && *flags[newFileArg].Bool()
 	var ergs []string
 	if ptr := args[emacsArg].StringList(); ptr != nil {
 		ergs = *ptr
@@ -247,6 +249,16 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 		sortedFiles = append(sortedFiles, f)
 	}
 
+	// Check all files exist, unless --new flag provided.
+	if !allowNewFiles {
+		for _, fo := range files {
+			if _, err := osStat(fo.name); os.IsNotExist(err) {
+				cos.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
+				return nil, false
+			}
+		}
+	}
+
 	command := make([]string, 0, 1+2*len(sortedFiles))
 	command = append(command, "emacs")
 	command = append(command, "--no-window-system")
@@ -300,6 +312,9 @@ func (e *Emacs) Command() commands.Command {
 				// TODO filename for first command
 				// any for second
 				commands.StringListArg(emacsArg, 0, 4, completor),
+			},
+			Flags: []commands.Flag{
+				commands.BoolFlag(newFileArg, 'n'),
 			},
 		},
 		Subcommands: map[string]commands.Command{

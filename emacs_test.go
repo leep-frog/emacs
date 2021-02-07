@@ -148,7 +148,6 @@ func TestEmacsExecution(t *testing.T) {
 		want            *Emacs
 		wantOK          bool
 		wantResp        *commands.ExecutorResponse
-		wantChanged     bool
 		wantStdout      []string
 		wantStderr      []string
 		osStatInfo      os.FileInfo
@@ -183,6 +182,65 @@ func TestEmacsExecution(t *testing.T) {
 				},
 			},
 			wantOK: true,
+		},
+		{
+			name:      "fails if file does not exist and new flag not provided",
+			e:         &Emacs{},
+			args:      []string{"newFile.txt"},
+			osStatErr: os.ErrNotExist,
+			wantStderr: []string{
+				`file "newFile.txt" does not exist; include "new" flag to create it`,
+			},
+		},
+		{
+			name:      "creates new file if short new flag is provided",
+			e:         &Emacs{},
+			args:      []string{"newFile.txt", "-n"},
+			osStatErr: os.ErrNotExist,
+			wantOK:    true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"newFile.txt",
+				},
+			},
+			want: &Emacs{
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"newFile.txt",
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "creates new file if new flag is provided",
+			e:         &Emacs{},
+			args:      []string{"newFile.txt", "--new"},
+			osStatErr: os.ErrNotExist,
+			wantOK:    true,
+			wantResp: &commands.ExecutorResponse{
+				Executable: []string{
+					"emacs",
+					"--no-window-system",
+					"newFile.txt",
+				},
+			},
+			want: &Emacs{
+				PreviousExecutions: []*commands.ExecutorResponse{
+					{
+						Executable: []string{
+							"emacs",
+							"--no-window-system",
+							"newFile.txt",
+						},
+					},
+				},
+			},
 		},
 		{
 			name: "handles files and alises",
@@ -772,6 +830,14 @@ func TestEmacsExecution(t *testing.T) {
 			},
 		},
 		{
+			name: "GetAlias fails if alias does not exist",
+			args: []string{"g", "salt"},
+			e:    &Emacs{},
+			wantStderr: []string{
+				`Alias "salt" does not exist`,
+			},
+		},
+		{
 			name: "GetAlias works",
 			args: []string{"g", "salt"},
 			e: &Emacs{
@@ -1064,7 +1130,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantChanged := test.want != nil
 			changed := test.e != nil && test.e.Changed()
 			if changed != wantChanged {
-				t.Fatalf("Execute(%v) marked Changed as %v; want %v", test.args, changed, test.wantChanged)
+				t.Fatalf("Execute(%v) marked Changed as %v; want %v", test.args, changed, wantChanged)
 			}
 
 			// Only check diff if we are expecting a change.
@@ -1096,6 +1162,7 @@ func TestUsage(t *testing.T) {
 		"l", "\n",
 		"s", regexpArg, "\n",
 		"[", emacsArg, emacsArg, emacsArg, emacsArg, "]",
+		"--new|-n",
 	}
 	usage := e.Command().Usage()
 	if diff := cmp.Diff(wantUsage, usage); diff != "" {
