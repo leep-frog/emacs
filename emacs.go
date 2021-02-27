@@ -301,8 +301,9 @@ func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*com
 // Command defines the emacs command and subcommands.
 func (e *Emacs) Command() commands.Command {
 	completor := &commands.Completor{
-		Distinct:          true,
-		SuggestionFetcher: &commands.FileFetcher{},
+		SuggestionFetcher: &commands.FileFetcher{
+			Distinct: true,
+		},
 	}
 	return &commands.CommandBranch{
 		IgnoreSubcommandAutocomplete: true,

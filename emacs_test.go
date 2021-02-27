@@ -81,6 +81,7 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				"testing/",
 				" ",
 			},
 		},
@@ -101,7 +102,22 @@ func TestAutocomplete(t *testing.T) {
 				"emacs_test.go",
 				"go.mod",
 				"go.sum",
+				"testing/",
 				" ",
+			},
+		},
+		{
+			name: "doesn't include files already included",
+			args: []string{"emacs.go", "e"},
+			want: []string{
+				"emacs_test.go",
+			},
+		},
+		{
+			name: "doesn't include files a directory down that are already included",
+			args: []string{"testing/alpha.txt", "testing/a"},
+			want: []string{
+				"testing/alpha.go",
 			},
 		},
 		// aliasFetcher tests
