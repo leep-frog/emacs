@@ -91,7 +91,7 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 
 	absPath, err := filepathAbs(filename)
 	if err != nil {
-		cos.Stderr("failed to get absolute file path: %v", err)
+		cos.Stderr("failed to get absolute file path for file %q: %v", filename, err)
 		return nil, false
 	}
 
@@ -232,19 +232,18 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 		files = append(files, fo)
 	}
 
-	cwd, err := osGetwd()
-	if err != nil {
-		cos.Stderr("failed to get current directory: %v", err)
-		return nil, false
-	}
-
 	sortedFiles := make([]*fileOpts, 0, len(ergs))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
 		if name, ok := e.Aliases[f.name]; ok {
 			f.name = name
 		} else {
-			f.name = filepath.Join(cwd, f.name)
+			var err error
+			f.name, err = filepathAbs(f.name)
+			if err != nil {
+				cos.Stderr("failed to get absolute path for file %q: %v", f.name, err)
+				return nil, false
+			}
 		}
 		sortedFiles = append(sortedFiles, f)
 	}

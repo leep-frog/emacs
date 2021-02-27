@@ -168,10 +168,8 @@ func TestEmacsExecution(t *testing.T) {
 		wantStderr      []string
 		osStatInfo      os.FileInfo
 		osStatErr       error
-		absolutePath    string
-		absolutePathErr error
-		osGetwd         string
-		osGetwdErr      error
+		absolutePath    map[string]string
+		absolutePathErr map[string]error
 	}{
 		// OpenEditor tests
 		{
@@ -180,11 +178,15 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"extra unknown args ([file5])"},
 		},
 		{
-			name:       "fails on getwd error",
-			e:          &Emacs{},
-			args:       []string{"file1", "file2"},
-			osGetwdErr: fmt.Errorf("uh oh"),
-			wantStderr: []string{"failed to get current directory: uh oh"},
+			name: "fails if can't get absolute path",
+			e:    &Emacs{},
+			args: []string{"file1"},
+			absolutePathErr: map[string]error{
+				"file1": fmt.Errorf("what is this nonsense?"),
+			},
+			wantStderr: []string{
+				`failed to get absolute path for file "file1": what is this nonsense?`,
+			},
 		},
 		{
 			name:       "cds into directory",
@@ -266,9 +268,12 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:    []string{"first.txt", "salt", "city", "fourth.go"},
-			osGetwd: "current/dir",
-			wantOK:  true,
+			args: []string{"first.txt", "salt", "city", "fourth.go"},
+			absolutePath: map[string]string{
+				"first.txt": filepath.Join("current/dir", "first.txt"),
+				"fourth.go": filepath.Join("current/dir", "fourth.go"),
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -306,9 +311,12 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:    []string{"first.txt", "salt", "32", "fourth.go"},
-			osGetwd: "home",
-			wantOK:  true,
+			args: []string{"first.txt", "salt", "32", "fourth.go"},
+			absolutePath: map[string]string{
+				"first.txt": filepath.Join("home", "first.txt"),
+				"fourth.go": filepath.Join("home", "fourth.go"),
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -346,9 +354,11 @@ func TestEmacsExecution(t *testing.T) {
 					"city": "catan/oreAndWheat",
 				},
 			},
-			args:    []string{"salt", "32", "14"},
-			osGetwd: "here",
-			wantOK:  true,
+			args: []string{"salt", "32", "14"},
+			absolutePath: map[string]string{
+				"14": filepath.Join("here", "14"),
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -683,20 +693,24 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{"file does not exist: nope"},
 		},
 		{
-			name:            "fails if can't get absolute path",
-			e:               &Emacs{},
-			args:            []string{"a", "salt", "sodiumChloride"},
-			osStatInfo:      &fakeFileInfo{mode: 0},
-			absolutePathErr: fmt.Errorf("absolute mistake"),
-			wantStderr:      []string{"failed to get absolute file path: absolute mistake"},
+			name:       "fails if can't get absolute path",
+			e:          &Emacs{},
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatInfo: &fakeFileInfo{mode: 0},
+			absolutePathErr: map[string]error{
+				"sodiumChloride": fmt.Errorf("absolute mistake"),
+			},
+			wantStderr: []string{`failed to get absolute file path for file "sodiumChloride": absolute mistake`},
 		},
 		{
-			name:         "adds to nil aliases",
-			e:            &Emacs{},
-			args:         []string{"a", "salt", "sodiumChloride"},
-			osStatInfo:   &fakeFileInfo{mode: 0},
-			absolutePath: "compounds/sodiumChloride",
-			wantOK:       true,
+			name:       "adds to nil aliases",
+			e:          &Emacs{},
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatInfo: &fakeFileInfo{mode: 0},
+			absolutePath: map[string]string{
+				"sodiumChloride": "compounds/sodiumChloride",
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -708,10 +722,12 @@ func TestEmacsExecution(t *testing.T) {
 			e: &Emacs{
 				Aliases: map[string]string{},
 			},
-			args:         []string{"a", "salt", "sodiumChloride"},
-			osStatInfo:   &fakeFileInfo{mode: 0},
-			absolutePath: "compounds/sodiumChloride",
-			wantOK:       true,
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatInfo: &fakeFileInfo{mode: 0},
+			absolutePath: map[string]string{
+				"sodiumChloride": "compounds/sodiumChloride",
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -726,10 +742,12 @@ func TestEmacsExecution(t *testing.T) {
 					"ab":    "cd",
 				},
 			},
-			args:         []string{"a", "salt", "sodiumChloride"},
-			osStatInfo:   &fakeFileInfo{mode: 0},
-			absolutePath: "compounds/sodiumChloride",
-			wantOK:       true,
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatInfo: &fakeFileInfo{mode: 0},
+			absolutePath: map[string]string{
+				"sodiumChloride": "compounds/sodiumChloride",
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"other": "things",
@@ -739,12 +757,14 @@ func TestEmacsExecution(t *testing.T) {
 			},
 		},
 		{
-			name:         "adds alias for directory",
-			e:            &Emacs{},
-			args:         []string{"a", "salt", "sodiumChloride"},
-			osStatInfo:   &fakeFileInfo{mode: os.ModeDir},
-			absolutePath: "compounds/sodiumChloride",
-			wantOK:       true,
+			name:       "adds alias for directory",
+			e:          &Emacs{},
+			args:       []string{"a", "salt", "sodiumChloride"},
+			osStatInfo: &fakeFileInfo{mode: os.ModeDir},
+			absolutePath: map[string]string{
+				"sodiumChloride": "compounds/sodiumChloride",
+			},
+			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]string{
 					"salt": "compounds/sodiumChloride",
@@ -1113,12 +1133,18 @@ func TestEmacsExecution(t *testing.T) {
 			defer func() { osStat = oldStat }()
 
 			oldAbs := filepathAbs
-			filepathAbs = func(string) (string, error) { return test.absolutePath, test.absolutePathErr }
+			filepathAbs = func(s string) (string, error) {
+				p, ok := test.absolutePath[s]
+				if !ok {
+					p = s
+				}
+				err, ok := test.absolutePathErr[s]
+				if !ok {
+					err = nil
+				}
+				return p, err
+			}
 			defer func() { filepathAbs = oldAbs }()
-
-			oldGetwd := osGetwd
-			osGetwd = func() (string, error) { return test.osGetwd, test.osGetwdErr }
-			defer func() { osGetwd = oldGetwd }()
 
 			if test.limitOverride != 0 {
 				oldLimit := historyLimit
