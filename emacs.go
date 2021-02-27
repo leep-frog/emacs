@@ -26,7 +26,6 @@ const (
 )
 
 var (
-	osGetwd     = os.Getwd
 	osStat      = os.Stat
 	filepathAbs = filepath.Abs
 	// This is in the var section so it can be stubbed out for tests.
