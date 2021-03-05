@@ -163,7 +163,7 @@ type fileOpts struct {
 
 // RunHistorical runs a previous command
 func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	if args[historicalArg].GetType() == nil {
+	if !args[historicalArg].GetSet() {
 		// print and return
 		for idx, pe := range e.PreviousExecutions {
 			revIdx := len(e.PreviousExecutions) - 1 - idx
