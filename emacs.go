@@ -41,7 +41,7 @@ type Emacs struct {
 
 // GetAlias
 func (e *Emacs) GetAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	alias := *args[aliasArg].String()
+	alias := args[aliasArg].GetString_()
 	f, ok := e.Aliases[alias]
 	if ok {
 		cos.Stdout("%s: %s", alias, f)
@@ -53,7 +53,7 @@ func (e *Emacs) GetAlias(cos commands.CommandOS, args, flags map[string]*command
 
 // SearchAliases
 func (e *Emacs) SearchAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	searchRegex, err := regexp.Compile(*args[regexpArg].String())
+	searchRegex, err := regexp.Compile(args[regexpArg].GetString_())
 	if err != nil {
 		cos.Stderr("Invalid regexp: %v", err)
 		return nil, false
@@ -75,8 +75,8 @@ func (e *Emacs) SearchAliases(cos commands.CommandOS, args, flags map[string]*co
 
 // AddAlias creates a new emacs alias.
 func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	alias := *args[aliasArg].String()
-	filename := *args[fileArg].String()
+	alias := args[aliasArg].GetString_()
+	filename := args[fileArg].GetString_()
 
 	if f, ok := e.Aliases[alias]; ok {
 		cos.Stderr("alias already defined: (%s: %s)", alias, f)
@@ -105,7 +105,7 @@ func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*command
 
 // DeleteAliases removes an existing emacs alias.
 func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	aliases := *args[aliasArg].StringList()
+	aliases := args[aliasArg].GetStringList().GetList()
 	for _, alias := range aliases {
 		if _, ok := e.Aliases[alias]; !ok {
 			cos.Stderr("alias %q does not exist", alias)
@@ -163,7 +163,7 @@ type fileOpts struct {
 
 // RunHistorical runs a previous command
 func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	if args[historicalArg].Int() == nil {
+	if args[historicalArg].GetType() == nil {
 		// print and return
 		for idx, pe := range e.PreviousExecutions {
 			revIdx := len(e.PreviousExecutions) - 1 - idx
@@ -172,7 +172,7 @@ func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*co
 		return nil, true
 	}
 
-	idx := *args[historicalArg].Int()
+	idx := int(args[historicalArg].GetInt())
 	// TODO: can this check be dynamic option (like IntNonNegative)?
 	if idx >= len(e.PreviousExecutions) {
 		cos.Stderr("%s is larger than list of stored commands", historicalArg)
@@ -184,11 +184,8 @@ func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*co
 
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	allowNewFiles := flags[newFileArg].Bool() != nil && *flags[newFileArg].Bool()
-	var ergs []string
-	if ptr := args[emacsArg].StringList(); ptr != nil {
-		ergs = *ptr
-	}
+	allowNewFiles := flags[newFileArg].GetBool()
+	ergs := args[emacsArg].GetStringList().GetList()
 
 	if len(ergs) == 0 {
 		if len(e.PreviousExecutions) == 0 {
