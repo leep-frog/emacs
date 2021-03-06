@@ -8,8 +8,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"regexp"
-	"sort"
 	"strconv"
 	"strings"
 
@@ -28,109 +26,44 @@ const (
 var (
 	osStat      = os.Stat
 	filepathAbs = filepath.Abs
+	fileAliaser = commands.NewFileAliaser
 	// This is in the var section so it can be stubbed out for tests.
 	historyLimit = 25
 )
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases            map[string]string
+	Aliases            map[string]*commands.Value
 	PreviousExecutions []*commands.ExecutorResponse
 	changed            bool
 }
 
-// GetAlias
-func (e *Emacs) GetAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	alias := args[aliasArg].GetString_()
-	f, ok := e.Aliases[alias]
-	if ok {
-		cos.Stdout("%s: %s", alias, f)
-	} else {
-		cos.Stderr("Alias %q does not exist", alias)
-	}
-	return nil, ok
+func (e *Emacs) GetAlias(s string) (*commands.Value, bool) {
+	v, ok := e.Aliases[s]
+	return v, ok
 }
 
-// SearchAliases
-func (e *Emacs) SearchAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	searchRegex, err := regexp.Compile(args[regexpArg].GetString_())
-	if err != nil {
-		cos.Stderr("Invalid regexp: %v", err)
-		return nil, false
-	}
-
-	var as []string
-	for a := range e.Aliases {
-		as = append(as, a)
-	}
-	sort.Strings(as)
-	for _, a := range as {
-		f := e.Aliases[a]
-		if searchRegex.MatchString(f) {
-			cos.Stdout("%s: %s", a, f)
-		}
-	}
-	return nil, true
-}
-
-// AddAlias creates a new emacs alias.
-func (e *Emacs) AddAlias(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	alias := args[aliasArg].GetString_()
-	filename := args[fileArg].GetString_()
-
-	if f, ok := e.Aliases[alias]; ok {
-		cos.Stderr("alias already defined: (%s: %s)", alias, f)
-		return nil, false
-	}
-
-	if _, err := osStat(filename); err != nil {
-		cos.Stderr("file does not exist: %v", err)
-		return nil, false
-	}
-
-	absPath, err := filepathAbs(filename)
-	if err != nil {
-		cos.Stderr("failed to get absolute file path for file %q: %v", filename, err)
-		return nil, false
-	}
-
+func (e *Emacs) SetAlias(s string, v *commands.Value) {
 	if e.Aliases == nil {
-		e.Aliases = map[string]string{}
+		e.Aliases = map[string]*commands.Value{}
 	}
-
-	e.Aliases[alias] = absPath
+	e.Aliases[s] = v
 	e.changed = true
-	return nil, true
+	return
 }
 
-// DeleteAliases removes an existing emacs alias.
-func (e *Emacs) DeleteAliases(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	aliases := args[aliasArg].GetStringList().GetList()
-	for _, alias := range aliases {
-		if _, ok := e.Aliases[alias]; !ok {
-			cos.Stderr("alias %q does not exist", alias)
-		} else {
-			delete(e.Aliases, alias)
-			e.changed = true
-		}
-	}
-
-	return nil, true
+func (e *Emacs) DeleteAlias(s string) {
+	delete(e.Aliases, s)
+	e.changed = true
+	return
 }
 
-// ListAliases removes an existing emacs alias.
-func (e *Emacs) ListAliases(cos commands.CommandOS, _, _ map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	keys := make([]string, 0, len(e.Aliases))
+func (e *Emacs) AllAliases() []string {
+	ss := make([]string, 0, len(e.Aliases))
 	for k := range e.Aliases {
-		keys = append(keys, k)
+		ss = append(ss, k)
 	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
-		cos.Stdout("%s: %s", k, e.Aliases[k])
-	}
-
-	return nil, true
+	return ss
 }
 
 // Name returns the name of the CLI.
@@ -232,7 +165,7 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
 		if name, ok := e.Aliases[f.name]; ok {
-			f.name = name
+			f.name = name.GetString_()
 		} else {
 			var err error
 			f.name, err = filepathAbs(f.name)
@@ -279,20 +212,6 @@ func (e *Emacs) Changed() bool {
 
 func (e *Emacs) Option() *commands.Option { return nil }
 
-type aliasFetcher struct {
-	emacs *Emacs
-}
-
-func (af *aliasFetcher) Fetch(value *commands.Value, args, flags map[string]*commands.Value) *commands.Completion {
-	suggestions := make([]string, 0, len(af.emacs.Aliases))
-	for k := range af.emacs.Aliases {
-		suggestions = append(suggestions, k)
-	}
-	return &commands.Completion{
-		Suggestions: suggestions,
-	}
-}
-
 // Command defines the emacs command and subcommands.
 func (e *Emacs) Command() commands.Command {
 	completor := &commands.Completor{
@@ -300,6 +219,16 @@ func (e *Emacs) Command() commands.Command {
 			Distinct: true,
 		},
 	}
+
+	scs := commands.AliasSubcommands(e, fileAliaser())
+	// Run earlier command
+	scs["h"] = &commands.TerminusCommand{
+		Executor: e.RunHistorical,
+		Args: []commands.Arg{
+			commands.IntArg(historicalArg, false, nil, commands.IntNonNegative()),
+		},
+	}
+
 	return &commands.CommandBranch{
 		IgnoreSubcommandAutocomplete: true,
 		TerminusCommand: &commands.TerminusCommand{
@@ -313,58 +242,6 @@ func (e *Emacs) Command() commands.Command {
 				commands.BoolFlag(newFileArg, 'n'),
 			},
 		},
-		Subcommands: map[string]commands.Command{
-			// AddAlias
-			"a": &commands.TerminusCommand{
-				Args: []commands.Arg{
-					// TODO: list of pairs.
-					commands.StringArg(aliasArg, true, nil),
-					commands.StringArg(fileArg, true, &commands.Completor{
-						SuggestionFetcher: &commands.FileFetcher{},
-					}),
-				},
-				Executor: e.AddAlias,
-			},
-			// DeleteAliases
-			"d": &commands.TerminusCommand{
-				Executor: e.DeleteAliases,
-				Args: []commands.Arg{
-					commands.StringListArg(aliasArg, 1, -1, &commands.Completor{
-						SuggestionFetcher: &aliasFetcher{
-							emacs: e,
-						},
-					}),
-				},
-			},
-			// ListAliases
-			"l": &commands.TerminusCommand{
-				Executor: e.ListAliases,
-			},
-			// GetAlias
-			"g": &commands.TerminusCommand{
-				Executor: e.GetAlias,
-				Args: []commands.Arg{
-					commands.StringArg(aliasArg, true, &commands.Completor{
-						SuggestionFetcher: &aliasFetcher{
-							emacs: e,
-						},
-					}),
-				},
-			},
-			// SearchAliases
-			"s": &commands.TerminusCommand{
-				Executor: e.SearchAliases,
-				Args: []commands.Arg{
-					commands.StringArg(regexpArg, true, nil),
-				},
-			},
-			// Run earlier command
-			"h": &commands.TerminusCommand{
-				Executor: e.RunHistorical,
-				Args: []commands.Arg{
-					commands.IntArg(historicalArg, false, nil, commands.IntNonNegative()),
-				},
-			},
-		},
+		Subcommands: scs,
 	}
 }
