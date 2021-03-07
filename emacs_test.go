@@ -1237,4 +1237,8 @@ func TestMetadata(t *testing.T) {
 	if e.Alias() != want {
 		t.Errorf("Incorrect emacs alias: got %s; want %s", e.Alias(), want)
 	}
+
+	if e.Option() != nil {
+		t.Errorf("Emacs{}.Option() returned %v; want nil", e.Option())
+	}
 }
