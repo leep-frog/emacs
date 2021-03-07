@@ -1,7 +1,6 @@
 package emacs
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -10,6 +9,7 @@ import (
 	"time"
 
 	"github.com/leep-frog/commands/commands"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -35,10 +35,10 @@ func TestLoad(t *testing.T) {
 		{
 			name: "properly unmarshals",
 			//json: `{"Aliases": {"salt": {"Type": {"String_": "compounds/sodiumChloride"}}}}`,
-			json: `{"Aliases":{"city":{"Type":{"String_":"catan/oreAndWheat"}}},"PreviousExecutions":null}`,
+			json: `{"Aliases":{"city":{"Type":"String","String":"catan/oreAndWheat"}},"PreviousExecutions":null}`,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 			},
 		},
@@ -65,8 +65,8 @@ func TestLoad(t *testing.T) {
 func TestAutocomplete(t *testing.T) {
 	e := &Emacs{
 		Aliases: map[string]*commands.Value{
-			"salt": stringVal("compounds/sodiumChloride"),
-			"city": stringVal("catan/oreAndWheat"),
+			"salt": commands.StringValue("compounds/sodiumChloride"),
+			"city": commands.StringValue("catan/oreAndWheat"),
 		},
 	}
 
@@ -266,8 +266,8 @@ func TestEmacsExecution(t *testing.T) {
 			name: "handles files and alises",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 			},
 			args: []string{"first.txt", "salt", "city", "fourth.go"},
@@ -278,8 +278,8 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -309,8 +309,8 @@ func TestEmacsExecution(t *testing.T) {
 			name: "handles line numbers",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 			},
 			args: []string{"first.txt", "salt", "32", "fourth.go"},
@@ -321,8 +321,8 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -352,8 +352,8 @@ func TestEmacsExecution(t *testing.T) {
 			name: "handles multiple numbers",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 			},
 			args: []string{"salt", "32", "14"},
@@ -363,8 +363,8 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -392,7 +392,7 @@ func TestEmacsExecution(t *testing.T) {
 			name: "adds to previous executions",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -415,7 +415,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -454,7 +454,7 @@ func TestEmacsExecution(t *testing.T) {
 			limitOverride: 2,
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -477,7 +477,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -509,7 +509,7 @@ func TestEmacsExecution(t *testing.T) {
 			limitOverride: 2,
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -546,7 +546,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -586,7 +586,7 @@ func TestEmacsExecution(t *testing.T) {
 			name: "if nil argument, run last command",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -626,7 +626,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -681,7 +681,7 @@ func TestEmacsExecution(t *testing.T) {
 			name: "fails if alias already defined",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("NaCl"),
+					"salt": commands.StringValue("NaCl"),
 				},
 			},
 			args:       []string{"a", "salt", "sodiumChloride"},
@@ -715,7 +715,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
 				},
 			},
 		},
@@ -732,7 +732,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
 				},
 			},
 		},
@@ -740,8 +740,8 @@ func TestEmacsExecution(t *testing.T) {
 			name: "adds to aliases",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"other": stringVal("things"),
-					"ab":    stringVal("cd"),
+					"other": commands.StringValue("things"),
+					"ab":    commands.StringValue("cd"),
 				},
 			},
 			args:       []string{"a", "salt", "sodiumChloride"},
@@ -752,9 +752,9 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"other": stringVal("things"),
-					"ab":    stringVal("cd"),
-					"salt":  stringVal("compounds/sodiumChloride"),
+					"other": commands.StringValue("things"),
+					"ab":    commands.StringValue("cd"),
+					"salt":  commands.StringValue("compounds/sodiumChloride"),
 				},
 			},
 		},
@@ -769,7 +769,7 @@ func TestEmacsExecution(t *testing.T) {
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
 				},
 			},
 		},
@@ -791,7 +791,7 @@ func TestEmacsExecution(t *testing.T) {
 			name: "deletes existing alias",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
 				},
 			},
 			args: []string{"d", "salt"},
@@ -804,16 +804,16 @@ func TestEmacsExecution(t *testing.T) {
 			name: "handles multiple missing and present",
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
-					"4":    stringVal("2+2"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
+					"4":    commands.StringValue("2+2"),
 				},
 			},
 			args:   []string{"d", "salt", "settlement", "5", "4"},
 			wantOK: true,
 			want: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 			},
 			wantStderr: []string{
@@ -846,9 +846,9 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"l"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
-					"4":    stringVal("2+2"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
+					"4":    commands.StringValue("2+2"),
 				},
 			},
 			wantOK: true,
@@ -880,9 +880,9 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"g", "salt"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"salt": stringVal("compounds/sodiumChloride"),
-					"city": stringVal("catan/oreAndWheat"),
-					"4":    stringVal("2+2"),
+					"salt": commands.StringValue("compounds/sodiumChloride"),
+					"city": commands.StringValue("catan/oreAndWheat"),
+					"4":    commands.StringValue("2+2"),
 				},
 			},
 			wantOK: true,
@@ -912,10 +912,10 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"s", "compounds"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"water": stringVal("liquids/compounds/hydrogenDioxide"),
-					"salt":  stringVal("compounds/sodiumChloride"),
-					"city":  stringVal("catan/oreAndWheat"),
-					"4":     stringVal("2+2"),
+					"water": commands.StringValue("liquids/compounds/hydrogenDioxide"),
+					"salt":  commands.StringValue("compounds/sodiumChloride"),
+					"city":  commands.StringValue("catan/oreAndWheat"),
+					"4":     commands.StringValue("2+2"),
 				},
 			},
 			wantOK: true,
@@ -930,7 +930,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"h"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -968,7 +968,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"h", "-1"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -1004,7 +1004,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"h", "3"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -1039,7 +1039,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"h", "0"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -1086,7 +1086,7 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"h", "2"},
 			e: &Emacs{
 				Aliases: map[string]*commands.Value{
-					"city": stringVal("catan/oreAndWheat"),
+					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -1183,12 +1183,13 @@ func TestEmacsExecution(t *testing.T) {
 
 			// Only check diff if we are expecting a change.
 			if wantChanged {
-				b, _ := json.Marshal(test.want)
-				fmt.Println(string(b))
+				//b, _ := json.Marshal(test.want)
+				//fmt.Println(string(b))
 				opts := []cmp.Option{
-					cmpopts.IgnoreUnexported(Emacs{}, commands.Value{}),
+					cmpopts.IgnoreUnexported(Emacs{}), // commands.Value{}),
 					// TODO: remove this once set is moved into a separate proto message.
-					cmpopts.IgnoreFields(commands.Value{}, "Set"),
+					//cmpopts.IgnoreFields(commands.Value{}, "Set"),
+					protocmp.Transform(),
 				}
 				if diff := cmp.Diff(test.want, test.e, opts...); diff != "" {
 					t.Fatalf("Execute(%v) produced emacs diff (-want, +got):\n%s", test.args, diff)
@@ -1235,13 +1236,5 @@ func TestMetadata(t *testing.T) {
 	want = "e"
 	if e.Alias() != want {
 		t.Errorf("Incorrect emacs alias: got %s; want %s", e.Alias(), want)
-	}
-}
-
-func stringVal(s string) *commands.Value {
-	return &commands.Value{
-		Type: &commands.Value_String_{
-			String_: s,
-		},
 	}
 }

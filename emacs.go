@@ -96,7 +96,7 @@ type fileOpts struct {
 
 // RunHistorical runs a previous command
 func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	if !args[historicalArg].GetSet() {
+	if !args[historicalArg].Provided() {
 		// print and return
 		for idx, pe := range e.PreviousExecutions {
 			revIdx := len(e.PreviousExecutions) - 1 - idx
@@ -105,7 +105,7 @@ func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*co
 		return nil, true
 	}
 
-	idx := int(args[historicalArg].GetInt())
+	idx := int(args[historicalArg].Int())
 	// TODO: can this check be dynamic option (like IntNonNegative)?
 	if idx >= len(e.PreviousExecutions) {
 		cos.Stderr("%s is larger than list of stored commands", historicalArg)
@@ -117,8 +117,8 @@ func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*co
 
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	allowNewFiles := flags[newFileArg].GetBool()
-	ergs := args[emacsArg].GetStringList().GetList()
+	allowNewFiles := flags[newFileArg].Provided() && flags[newFileArg].Bool()
+	ergs := args[emacsArg].StringList()
 
 	if len(ergs) == 0 {
 		if len(e.PreviousExecutions) == 0 {
@@ -165,7 +165,7 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
 		if name, ok := e.Aliases[f.name]; ok {
-			f.name = name.GetString_()
+			f.name = name.String()
 		} else {
 			var err error
 			f.name, err = filepathAbs(f.name)
