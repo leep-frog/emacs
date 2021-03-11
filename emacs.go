@@ -21,6 +21,8 @@ const (
 	historicalArg = "COMMAND_IDX"
 	regexpArg     = "REGEXP"
 	newFileArg    = "new"
+
+	fileAliaserName = "fileAliases"
 )
 
 var (
@@ -33,37 +35,23 @@ var (
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases            map[string]*commands.Value
+	Aliases            map[string]map[string]*commands.Value
 	PreviousExecutions []*commands.ExecutorResponse
 	changed            bool
 }
 
-func (e *Emacs) GetAlias(s string) (*commands.Value, bool) {
-	v, ok := e.Aliases[s]
-	return v, ok
+func (e *Emacs) AliasMap() map[string]map[string]*commands.Value {
+	return e.Aliases
 }
 
-func (e *Emacs) SetAlias(s string, v *commands.Value) {
+func (e *Emacs) InitializeAliasMap() {
 	if e.Aliases == nil {
-		e.Aliases = map[string]*commands.Value{}
+		e.Aliases = map[string]map[string]*commands.Value{}
 	}
-	e.Aliases[s] = v
-	e.changed = true
-	return
 }
 
-func (e *Emacs) DeleteAlias(s string) {
-	delete(e.Aliases, s)
+func (e *Emacs) MarkChanged() {
 	e.changed = true
-	return
-}
-
-func (e *Emacs) AllAliases() []string {
-	ss := make([]string, 0, len(e.Aliases))
-	for k := range e.Aliases {
-		ss = append(ss, k)
-	}
-	return ss
 }
 
 // Name returns the name of the CLI.
@@ -164,7 +152,7 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	sortedFiles := make([]*fileOpts, 0, len(ergs))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
-		if name, ok := e.Aliases[f.name]; ok {
+		if name, ok := e.Aliases[fileAliaserName][f.name]; ok {
 			f.name = name.String()
 		} else {
 			var err error
@@ -220,7 +208,7 @@ func (e *Emacs) Command() commands.Command {
 		},
 	}
 
-	scs := commands.AliasSubcommands(e, fileAliaser())
+	scs := commands.AliasSubcommands(e, fileAliaser(), fileAliaserName)
 	// Run earlier command
 	scs["h"] = &commands.TerminusCommand{
 		Executor: e.RunHistorical,

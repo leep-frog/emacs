@@ -34,11 +34,11 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "properly unmarshals",
-			//json: `{"Aliases": {"salt": {"Type": {"String_": "compounds/sodiumChloride"}}}}`,
-			json: `{"Aliases":{"city":{"Type":"String","String":"catan/oreAndWheat"}},"PreviousExecutions":null}`,
+			json: fmt.Sprintf(`{"Aliases":{"%s":{"city":{"Type":"String","String":"catan/oreAndWheat"}}},"PreviousExecutions":null}`, fileAliaserName),
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 			},
 		},
@@ -64,9 +64,10 @@ func TestLoad(t *testing.T) {
 
 func TestAutocomplete(t *testing.T) {
 	e := &Emacs{
-		Aliases: map[string]*commands.Value{
+		Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 			"salt": commands.StringValue("compounds/sodiumChloride"),
 			"city": commands.StringValue("catan/oreAndWheat"),
+		},
 		},
 	}
 
@@ -265,9 +266,10 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "handles files and alises",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 			},
 			args: []string{"first.txt", "salt", "city", "fourth.go"},
@@ -277,9 +279,10 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -308,9 +311,10 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "handles line numbers",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 			},
 			args: []string{"first.txt", "salt", "32", "fourth.go"},
@@ -320,9 +324,10 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -351,9 +356,10 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "handles multiple numbers",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 			},
 			args: []string{"salt", "32", "14"},
@@ -362,9 +368,10 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -391,8 +398,9 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "adds to previous executions",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -414,8 +422,9 @@ func TestEmacsExecution(t *testing.T) {
 			args:   []string{"luckyNumberThree"},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -453,8 +462,9 @@ func TestEmacsExecution(t *testing.T) {
 			name:          "reduces size of previous executions if at limit",
 			limitOverride: 2,
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
+				},
 				},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
@@ -476,9 +486,9 @@ func TestEmacsExecution(t *testing.T) {
 			args:   []string{"luckyNumberThree"},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -508,9 +518,9 @@ func TestEmacsExecution(t *testing.T) {
 			name:          "reduces size of previous executions if over limit",
 			limitOverride: 2,
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -545,9 +555,9 @@ func TestEmacsExecution(t *testing.T) {
 			args:   []string{"luckyNumberFive"},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -585,9 +595,9 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "if nil argument, run last command",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -625,9 +635,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "if empty arguments, run last command",
 			args: []string{},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -680,9 +690,9 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "fails if alias already defined",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("NaCl"),
-				},
+				}},
 			},
 			args:       []string{"a", "salt", "sodiumChloride"},
 			wantStderr: []string{"alias already defined: (salt: NaCl)"},
@@ -714,15 +724,15 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
-				},
+				}},
 			},
 		},
 		{
 			name: "adds to empty aliases",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{},
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{}},
 			},
 			args:       []string{"a", "salt", "sodiumChloride"},
 			osStatInfo: &fakeFileInfo{mode: 0},
@@ -731,18 +741,18 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
-				},
+				}},
 			},
 		},
 		{
 			name: "adds to aliases",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"other": commands.StringValue("things"),
 					"ab":    commands.StringValue("cd"),
-				},
+				}},
 			},
 			args:       []string{"a", "salt", "sodiumChloride"},
 			osStatInfo: &fakeFileInfo{mode: 0},
@@ -751,11 +761,11 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"other": commands.StringValue("things"),
 					"ab":    commands.StringValue("cd"),
 					"salt":  commands.StringValue("compounds/sodiumChloride"),
-				},
+				}},
 			},
 		},
 		{
@@ -768,9 +778,9 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
-				},
+				}},
 			},
 		},
 		// DeleteAliases tests
@@ -790,31 +800,31 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "deletes existing alias",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
-				},
+				}},
 			},
 			args: []string{"d", "salt"},
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{},
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{}},
 			},
 			wantOK: true,
 		},
 		{
 			name: "handles multiple missing and present",
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
 					"4":    commands.StringValue("2+2"),
-				},
+				}},
 			},
 			args:   []string{"d", "salt", "settlement", "5", "4"},
 			wantOK: true,
 			want: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 			},
 			wantStderr: []string{
 				`alias "settlement" does not exist`,
@@ -837,7 +847,7 @@ func TestEmacsExecution(t *testing.T) {
 			name: "no output for empty aliases",
 			args: []string{"l"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{},
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{}},
 			},
 			wantOK: true,
 		},
@@ -845,11 +855,11 @@ func TestEmacsExecution(t *testing.T) {
 			name: "proper output for aliases",
 			args: []string{"l"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
 					"4":    commands.StringValue("2+2"),
-				},
+				}},
 			},
 			wantOK: true,
 			wantStdout: []string{
@@ -879,11 +889,11 @@ func TestEmacsExecution(t *testing.T) {
 			name: "GetAlias works",
 			args: []string{"g", "salt"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"salt": commands.StringValue("compounds/sodiumChloride"),
 					"city": commands.StringValue("catan/oreAndWheat"),
 					"4":    commands.StringValue("2+2"),
-				},
+				}},
 			},
 			wantOK: true,
 			wantStdout: []string{
@@ -911,11 +921,12 @@ func TestEmacsExecution(t *testing.T) {
 			name: "SearchAlias works",
 			args: []string{"s", "compounds"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"water": commands.StringValue("liquids/compounds/hydrogenDioxide"),
 					"salt":  commands.StringValue("compounds/sodiumChloride"),
 					"city":  commands.StringValue("catan/oreAndWheat"),
 					"4":     commands.StringValue("2+2"),
+				},
 				},
 			},
 			wantOK: true,
@@ -929,9 +940,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "prints historical commands if no index given",
 			args: []string{"h"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -967,9 +978,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "historical fails if negative idx",
 			args: []string{"h", "-1"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -1003,9 +1014,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "historical fails if index is too large",
 			args: []string{"h", "3"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -1038,9 +1049,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "historical returns 0 index",
 			args: []string{"h", "0"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
@@ -1085,9 +1096,9 @@ func TestEmacsExecution(t *testing.T) {
 			name: "historical returns 0 index",
 			args: []string{"h", "2"},
 			e: &Emacs{
-				Aliases: map[string]*commands.Value{
+				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
-				},
+				}},
 				PreviousExecutions: []*commands.ExecutorResponse{
 					{
 						Executable: []string{
