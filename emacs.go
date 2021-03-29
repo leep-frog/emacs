@@ -28,26 +28,23 @@ const (
 var (
 	osStat      = os.Stat
 	filepathAbs = filepath.Abs
-	fileAliaser = commands.NewFileAliaser
+	//fileAliaser = commands.NewFileAliaser
 	// This is in the var section so it can be stubbed out for tests.
 	historyLimit = 25
 )
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases            map[string]map[string]*commands.Value
-	PreviousExecutions []*commands.ExecutorResponse
+	Aliases            map[string]map[string]*commands.AliasedValues
+	PreviousExecutions [][]string
 	changed            bool
 }
 
-func (e *Emacs) AliasMap() map[string]map[string]*commands.Value {
-	return e.Aliases
-}
-
-func (e *Emacs) InitializeAliasMap() {
+func (e *Emacs) AliasMap() map[string]map[string]*commands.AliasedValues {
 	if e.Aliases == nil {
-		e.Aliases = map[string]map[string]*commands.Value{}
+		e.Aliases = map[string]map[string]*commands.AliasedValues{}
 	}
+	return e.Aliases
 }
 
 func (e *Emacs) MarkChanged() {
@@ -82,47 +79,50 @@ type fileOpts struct {
 	lineNumber int
 }
 
+// TODO: add this as an option in aliasers. Specifically, if no args
+// are provided, then run the last command.
 // RunHistorical runs a previous command
-func (e *Emacs) RunHistorical(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	if !args[historicalArg].Provided() {
+func (e *Emacs) RunHistorical(ws *commands.WorldState) bool {
+	if !ws.Values[historicalArg].Provided() {
 		// print and return
 		for idx, pe := range e.PreviousExecutions {
 			revIdx := len(e.PreviousExecutions) - 1 - idx
-			cos.Stdout(fmt.Sprintf("%2d: %s", revIdx, strings.Join(pe.Executable, " ")))
+			ws.Cos.Stdout(fmt.Sprintf("%2d: %s", revIdx, strings.Join(pe, " ")))
 		}
-		return nil, true
+		return true
 	}
 
-	idx := int(args[historicalArg].Int())
+	idx := int(ws.Values[historicalArg].Int())
 	// TODO: can this check be dynamic option (like IntNonNegative)?
 	if idx >= len(e.PreviousExecutions) {
-		cos.Stderr("%s is larger than list of stored commands", historicalArg)
-		return nil, false
+		ws.Cos.Stderr("%s is larger than list of stored commands", historicalArg)
+		return false
 	}
 
-	return e.PreviousExecutions[len(e.PreviousExecutions)-1-idx], true
+	ws.Executable = append(ws.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1-idx])
+	return true
 }
 
 // OpenEditor constructs an emacs command to open the specified files.
-func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*commands.Value, _ *commands.OptionInfo) (*commands.ExecutorResponse, bool) {
-	allowNewFiles := flags[newFileArg].Provided() && flags[newFileArg].Bool()
-	ergs := args[emacsArg].StringList()
+func (e *Emacs) OpenEditor(ws *commands.WorldState) bool {
+	allowNewFiles := ws.Values[newFileArg].Bool()
+	ergs := ws.Values[emacsArg].StringList()
 
 	if len(ergs) == 0 {
 		if len(e.PreviousExecutions) == 0 {
-			cos.Stderr("no previous executions")
-			return nil, false
+			ws.Cos.Stderr("no previous executions")
+			return false
 		}
-		return e.PreviousExecutions[len(e.PreviousExecutions)-1], true
+		ws.Executable = append(ws.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1])
+		return true
 	}
 
 	// If only a directory was provided, then just cd into the directory.
 	if len(ergs) == 1 {
 		fi, _ := osStat(ergs[0])
 		if fi != nil && fi.IsDir() {
-			return &commands.ExecutorResponse{
-				Executable: []string{"cd", ergs[0]},
-			}, true
+			ws.Executable = append(ws.Executable, []string{"cd", ergs[0]})
+			return true
 		}
 	}
 
@@ -152,14 +152,18 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	sortedFiles := make([]*fileOpts, 0, len(ergs))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
-		if name, ok := e.Aliases[fileAliaserName][f.name]; ok {
-			f.name = name.String()
+		if name, ok := e.AliasMap()[fileAliaserName][f.name]; ok {
+			// TODO: need to make Alias Command (already implemented) and Alias Arg (just for simple, but potentially multiple substitutions)
+			// The only difference really is the number of args to iterate across.
+			// So an alias for an entire command would be AliasNode(name, nodes, cli, 1)
+			// whereas an alias for a partial command would be AliasNode(name, nodes, cli, 4)
+			f.name = name.TODO
 		} else {
 			var err error
 			f.name, err = filepathAbs(f.name)
 			if err != nil {
-				cos.Stderr("failed to get absolute path for file %q: %v", f.name, err)
-				return nil, false
+				ws.Cos.Stderr("failed to get absolute path for file %q: %v", f.name, err)
+				return false
 			}
 		}
 		sortedFiles = append(sortedFiles, f)
@@ -169,8 +173,8 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	if !allowNewFiles {
 		for _, fo := range files {
 			if _, err := osStat(fo.name); os.IsNotExist(err) {
-				cos.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
-				return nil, false
+				ws.Cos.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
+				return false
 			}
 		}
 	}
@@ -186,12 +190,13 @@ func (e *Emacs) OpenEditor(cos commands.CommandOS, args, flags map[string]*comma
 	}
 
 	e.changed = true
-	e.PreviousExecutions = append(e.PreviousExecutions, &commands.ExecutorResponse{Executable: command})
+	e.PreviousExecutions = append(e.PreviousExecutions, command)
 	if len(e.PreviousExecutions) > historyLimit {
 		e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
 	}
 
-	return &commands.ExecutorResponse{Executable: command}, true
+	ws.Executable = append(ws.Executable, command)
+	return true
 }
 
 func (e *Emacs) Changed() bool {
@@ -200,36 +205,27 @@ func (e *Emacs) Changed() bool {
 
 func (e *Emacs) Option() *commands.Option { return nil }
 
-// Command defines the emacs command and subcommands.
-func (e *Emacs) Command() commands.Command {
+func (e *Emacs) Node() *commands.Node {
 	completor := &commands.Completor{
 		SuggestionFetcher: &commands.FileFetcher{
 			Distinct: true,
 		},
 	}
 
-	scs := commands.AliasSubcommands(e, fileAliaser(), fileAliaserName)
-	// Run earlier command
-	scs["h"] = &commands.TerminusCommand{
-		Executor: e.RunHistorical,
-		Args: []commands.Arg{
-			commands.IntArg(historicalArg, false, nil, commands.IntNonNegative()),
+	return commands.BranchNode(
+		map[string]*commands.Node{
+			"h": commands.SerialNodes(
+				commands.IntArg(historicalArg, false, &commands.ArgOpt{Validators: []commands.ArgValidator{commands.IntNonNegative()}}),
+				commands.ExecutorNode(e.RunHistorical),
+			),
 		},
-	}
-
-	return &commands.CommandBranch{
-		IgnoreSubcommandAutocomplete: true,
-		TerminusCommand: &commands.TerminusCommand{
-			Executor: e.OpenEditor,
-			Args: []commands.Arg{
-				// TODO filename for first command
-				// any for second
-				commands.StringListArg(emacsArg, 0, 4, completor),
-			},
-			Flags: []commands.Flag{
-				commands.BoolFlag(newFileArg, 'n'),
-			},
-		},
-		Subcommands: scs,
-	}
+		commands.AliasNode("open-editor",
+			commands.SerialNodes(
+				commands.NewFlagNode(commands.BoolFlag(newFileArg, 'n')),
+				commands.StringListNode(emacsArg, 0, 4, &commands.ArgOpt{Completor: completor}),
+				commands.ExecutorNode(e.OpenEditor),
+			),
+			e,
+		),
+	)
 }

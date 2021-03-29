@@ -66,6 +66,10 @@ github.com/leep-frog/commands v1.1.1-0.20210307190611-2ab4f7909f80 h1:OQUiMCY5Mv
 github.com/leep-frog/commands v1.1.1-0.20210307190611-2ab4f7909f80/go.mod h1:enb3RkLyKmbaxp1OVvXVtSWAonEu06bw/jajGO48ncw=
 github.com/leep-frog/commands v1.1.1-0.20210307190855-a48c8096b918 h1:w9HaYXxbW4l4amSn6TXsiinc//qFsAloDRYLqyHHEqE=
 github.com/leep-frog/commands v1.1.1-0.20210307190855-a48c8096b918/go.mod h1:enb3RkLyKmbaxp1OVvXVtSWAonEu06bw/jajGO48ncw=
+github.com/leep-frog/commands v1.1.1-0.20210329032407-cff5e6a362a8 h1:YD46BJ2eHk8sJz9IXwbzAm1pLkOBSnBlpJ0E44MJhdM=
+github.com/leep-frog/commands v1.1.1-0.20210329032407-cff5e6a362a8/go.mod h1:JiPTp+skgvKR98FS3nl6mdtzA2pB6BEFra2YR7XkMKA=
+github.com/leep-frog/commands v1.1.1-0.20210329041758-7de07d731bbf h1:O++br541EGM/fhFBtcJwJnOQ5Qkx/FZOzJuIHoCYT+k=
+github.com/leep-frog/commands v1.1.1-0.20210329041758-7de07d731bbf/go.mod h1:JiPTp+skgvKR98FS3nl6mdtzA2pB6BEFra2YR7XkMKA=
 github.com/prometheus/client_model v0.0.0-20190812154241-14fe0d1b01d4/go.mod h1:xMI15A0UPsDsEKsMN9yxemIoYk6Tm2C1GtYGdfGttqA=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/exp v0.0.0-20190121172915-509febef88a4/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=

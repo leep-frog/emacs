@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/leep-frog/commands/commands"
+	"github.com/leep-frog/commands/commandtest"
 	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/google/go-cmp/cmp"
@@ -62,7 +63,7 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestAutocomplete(t *testing.T) {
+/*func TestAutocomplete(t *testing.T) {
 	e := &Emacs{
 		Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 			"salt": commands.StringValue("compounds/sodiumChloride"),
@@ -150,13 +151,14 @@ func TestAutocomplete(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			suggestions := commands.Autocomplete(e.Command(), test.args, -1)
+			commands.GenericAutocomplete()
+			suggestions := commands.Autocomplete(e.Node(), test.args, -1)
 			if diff := cmp.Diff(test.want, suggestions); diff != "" {
 				t.Errorf("Complete(%v) produced diff (-want, +got):\n%s", test.args, diff)
 			}
 		})
 	}
-}
+}*/
 
 func TestEmacsExecution(t *testing.T) {
 	for _, test := range []struct {
@@ -166,7 +168,7 @@ func TestEmacsExecution(t *testing.T) {
 		limitOverride   int
 		want            *Emacs
 		wantOK          bool
-		wantResp        *commands.ExecutorResponse
+		wantResp        *commands.WorldState
 		wantStdout      []string
 		wantStderr      []string
 		osStatInfo      os.FileInfo
@@ -176,8 +178,15 @@ func TestEmacsExecution(t *testing.T) {
 	}{
 		// OpenEditor tests
 		{
-			name:       "error when too many arguments",
-			args:       []string{"file1", "file2", "file3", "file4", "file5"},
+			name: "error when too many arguments",
+			e:    &Emacs{},
+			args: []string{"file1", "file2", "file3", "file4", "file5"},
+			wantResp: &commands.WorldState{
+				RawArgs: []string{"file5"},
+				Values: map[string]*commands.Value{
+					emacsArg: commands.StringListValue("file1", "file2", "file3", "file4"),
+				},
+			},
 			wantStderr: []string{"extra unknown args ([file5])"},
 		},
 		{
@@ -196,11 +205,11 @@ func TestEmacsExecution(t *testing.T) {
 			e:          &Emacs{},
 			args:       []string{"dirName"},
 			osStatInfo: &fakeFileInfo{mode: os.ModeDir},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"cd",
 					"dirName",
-				},
+				}},
 			},
 			wantOK: true,
 		},
@@ -219,23 +228,19 @@ func TestEmacsExecution(t *testing.T) {
 			args:      []string{"newFile.txt", "-n"},
 			osStatErr: os.ErrNotExist,
 			wantOK:    true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"newFile.txt",
-				},
+				}},
 			},
 			want: &Emacs{
-				PreviousExecutions: []*commands.ExecutorResponse{
-					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"newFile.txt",
-						},
-					},
-				},
+				PreviousExecutions: [][]string{{
+					"emacs",
+					"--no-window-system",
+					"newFile.txt",
+				}},
 			},
 		},
 		{
@@ -244,23 +249,19 @@ func TestEmacsExecution(t *testing.T) {
 			args:      []string{"newFile.txt", "--new"},
 			osStatErr: os.ErrNotExist,
 			wantOK:    true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"newFile.txt",
-				},
+				}},
 			},
 			want: &Emacs{
-				PreviousExecutions: []*commands.ExecutorResponse{
-					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"newFile.txt",
-						},
-					},
-				},
+				PreviousExecutions: [][]string{{
+					"emacs",
+					"--no-window-system",
+					"newFile.txt",
+				}},
 			},
 		},
 		{
@@ -284,28 +285,24 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
-					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							filepath.Join("current/dir", "fourth.go"),
-							"catan/oreAndWheat",
-							"compounds/sodiumChloride",
-							filepath.Join("current/dir", "first.txt"),
-						},
-					},
-				},
-			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
 					filepath.Join("current/dir", "fourth.go"),
 					"catan/oreAndWheat",
 					"compounds/sodiumChloride",
 					filepath.Join("current/dir", "first.txt"),
-				},
+				}},
+			},
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
+					"emacs",
+					"--no-window-system",
+					filepath.Join("current/dir", "fourth.go"),
+					"catan/oreAndWheat",
+					"compounds/sodiumChloride",
+					filepath.Join("current/dir", "first.txt"),
+				}},
 			},
 		},
 		{
@@ -329,28 +326,24 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
-					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							filepath.Join("home", "fourth.go"),
-							"+32",
-							"compounds/sodiumChloride",
-							filepath.Join("home", "first.txt"),
-						},
-					},
-				},
-			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
 					filepath.Join("home", "fourth.go"),
 					"+32",
 					"compounds/sodiumChloride",
 					filepath.Join("home", "first.txt"),
-				},
+				}},
+			},
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
+					"emacs",
+					"--no-window-system",
+					filepath.Join("home", "fourth.go"),
+					"+32",
+					"compounds/sodiumChloride",
+					filepath.Join("home", "first.txt"),
+				}},
 			},
 		},
 		{
@@ -373,26 +366,22 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
-					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							filepath.Join("here", "14"),
-							"+32",
-							"compounds/sodiumChloride",
-						},
-					},
-				},
-			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
 					filepath.Join("here", "14"),
 					"+32",
 					"compounds/sodiumChloride",
-				},
+				}},
+			},
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
+					"emacs",
+					"--no-window-system",
+					filepath.Join("here", "14"),
+					"+32",
+					"compounds/sodiumChloride",
+				}},
 			},
 		},
 		{
@@ -402,20 +391,16 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 				},
 			},
@@ -426,36 +411,30 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"luckyNumberThree",
-						},
+						"emacs",
+						"--no-window-system",
+						"luckyNumberThree",
 					},
 				},
 			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"luckyNumberThree",
-				},
+				}},
 			},
 		},
 		{
@@ -466,20 +445,16 @@ func TestEmacsExecution(t *testing.T) {
 					"city": commands.StringValue("catan/oreAndWheat"),
 				},
 				},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 				},
 			},
@@ -489,29 +464,25 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"luckyNumberThree",
-						},
+						"emacs",
+						"--no-window-system",
+						"luckyNumberThree",
 					},
 				},
 			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"luckyNumberThree",
-				},
+				}},
 			},
 		},
 		{
@@ -521,34 +492,26 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"3rdFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"3rdFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"FourthFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"FourthFile",
 					},
 				},
 			},
@@ -558,36 +521,30 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"FourthFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"FourthFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"luckyNumberFive",
-						},
+						"emacs",
+						"--no-window-system",
+						"luckyNumberFive",
 					},
 				},
 			},
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"luckyNumberFive",
-				},
+				}},
 			},
 		},
 		{
 			name: "if empty PreviousExecutions and no arguments, error",
-			e: &Emacs{
-				PreviousExecutions: []*commands.ExecutorResponse{},
-			},
+			e:    &Emacs{},
 			wantStderr: []string{
 				"no previous executions",
 			},
@@ -598,37 +555,31 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"3rdFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"3rdFile",
 					},
 				},
 			},
 			wantOK: true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"3rdFile",
-				},
+				}},
 			},
 		},
 		{
@@ -638,37 +589,31 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2ndFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"2ndFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"3rdFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"3rdFile",
 					},
 				},
 			},
 			wantOK: true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"3rdFile",
-				},
+				}},
 			},
 		},
 		// AddAlias tests
@@ -943,27 +888,21 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2nd", "File",
-						},
+						"emacs",
+						"--no-window-system",
+						"2nd", "File",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"File", "three",
-						},
+						"emacs",
+						"--no-window-system",
+						"File", "three",
 					},
 				},
 			},
@@ -981,27 +920,21 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2nd", "File",
-						},
+						"emacs",
+						"--no-window-system",
+						"2nd", "File",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"File", "three",
-						},
+						"emacs",
+						"--no-window-system",
+						"File", "three",
 					},
 				},
 			},
@@ -1017,27 +950,21 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2nd", "File",
-						},
+						"emacs",
+						"--no-window-system",
+						"2nd", "File",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"File", "three",
-						},
+						"emacs",
+						"--no-window-system",
+						"File", "three",
 					},
 				},
 			},
@@ -1052,44 +979,36 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2nd", "File",
-						},
+						"emacs",
+						"--no-window-system",
+						"2nd", "File",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"File", "three",
-						},
+						"emacs",
+						"--no-window-system",
+						"File", "three",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"fourth",
-						},
+						"emacs",
+						"--no-window-system",
+						"fourth",
 					},
 				},
 			},
 			wantOK: true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"fourth",
-				},
+				}},
 			},
 		},
 		{
@@ -1099,44 +1018,36 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string]*commands.Value{fileAliaserName: map[string]*commands.Value{
 					"city": commands.StringValue("catan/oreAndWheat"),
 				}},
-				PreviousExecutions: []*commands.ExecutorResponse{
+				PreviousExecutions: [][]string{
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"firstFile",
-						},
+						"emacs",
+						"--no-window-system",
+						"firstFile",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"2nd", "File",
-						},
+						"emacs",
+						"--no-window-system",
+						"2nd", "File",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"File", "three",
-						},
+						"emacs",
+						"--no-window-system",
+						"File", "three",
 					},
 					{
-						Executable: []string{
-							"emacs",
-							"--no-window-system",
-							"fourth",
-						},
+						"emacs",
+						"--no-window-system",
+						"fourth",
 					},
 				},
 			},
 			wantOK: true,
-			wantResp: &commands.ExecutorResponse{
-				Executable: []string{
+			wantResp: &commands.WorldState{
+				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
 					"2nd", "File",
-				},
+				}},
 			},
 		},
 	} {
@@ -1159,9 +1070,9 @@ func TestEmacsExecution(t *testing.T) {
 			}
 			defer func() { filepathAbs = oldAbs }()
 
-			oldFileAliaser := fileAliaser
+			/*oldFileAliaser := fileAliaser
 			fileAliaser = func() commands.Aliaser { return commands.TestFileAliaser(osStat, filepathAbs) }
-			defer func() { fileAliaser = oldFileAliaser }()
+			defer func() { fileAliaser = oldFileAliaser }()*/
 
 			if test.limitOverride != 0 {
 				oldLimit := historyLimit
@@ -1169,8 +1080,11 @@ func TestEmacsExecution(t *testing.T) {
 				defer func() { historyLimit = oldLimit }()
 			}
 
-			tcos := &commands.TestCommandOS{}
-			got, ok := commands.Execute(tcos, test.e.Command(), test.args, nil)
+			ws := &commands.WorldState{
+				RawArgs: test.args,
+			}
+			commandtest.Execute(t, test.e.Node(), ws, test.wantResp, test.wantStdout, test.wantStderr)
+			/*got, ok := commands.Execute(tcos, test.e.Command(), test.args, nil)
 			if ok != test.wantOK {
 				t.Fatalf("commands.Execute(%v) returned %v for ok; want %v", test.args, ok, test.wantOK)
 			}
@@ -1183,7 +1097,7 @@ func TestEmacsExecution(t *testing.T) {
 			}
 			if diff := cmp.Diff(test.wantStderr, tcos.GetStderr()); diff != "" {
 				t.Errorf("command.Execute(%v) produced stderr diff (-want, +got):\n%s", test.args, diff)
-			}
+			}*/
 
 			// Assume wantChanged if test.want is set
 			wantChanged := test.want != nil
@@ -1219,7 +1133,7 @@ func (fi fakeFileInfo) ModTime() time.Time { return time.Now() }
 func (fi fakeFileInfo) IsDir() bool        { return fi.Mode().IsDir() }
 func (fi fakeFileInfo) Sys() interface{}   { return nil }
 
-func TestUsage(t *testing.T) {
+/*func TestUsage(t *testing.T) {
 	e := &Emacs{}
 	wantUsage := []string{
 		"a", aliasArg, fileArg, "\n",
@@ -1235,7 +1149,7 @@ func TestUsage(t *testing.T) {
 	if diff := cmp.Diff(wantUsage, usage); diff != "" {
 		t.Errorf("Usage() produced diff (-want, +got):\n%s", diff)
 	}
-}
+}*/
 
 func TestMetadata(t *testing.T) {
 	e := &Emacs{}
