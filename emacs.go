@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/leep-frog/commands/commands"
+	"github.com/leep-frog/command"
 )
 
 const (
@@ -26,8 +26,6 @@ const (
 )
 
 var (
-	osStat      = os.Stat
-	filepathAbs = filepath.Abs
 	//fileAliaser = commands.NewFileAliaser
 	// This is in the var section so it can be stubbed out for tests.
 	historyLimit = 25
@@ -35,14 +33,14 @@ var (
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases            map[string]map[string]*commands.AliasedValues
+	Aliases            map[string]map[string][]string
 	PreviousExecutions [][]string
 	changed            bool
 }
 
-func (e *Emacs) AliasMap() map[string]map[string]*commands.AliasedValues {
+func (e *Emacs) AliasMap() map[string]map[string][]string {
 	if e.Aliases == nil {
-		e.Aliases = map[string]map[string]*commands.AliasedValues{}
+		e.Aliases = map[string]map[string][]string{}
 	}
 	return e.Aliases
 }
@@ -54,11 +52,6 @@ func (e *Emacs) MarkChanged() {
 // Name returns the name of the CLI.
 func (e *Emacs) Name() string {
 	return "emacs-shortcuts"
-}
-
-// Alias returns the CLI alias.
-func (e *Emacs) Alias() string {
-	return "e"
 }
 
 // Load creates an Emacs object from a JSON string.
@@ -82,47 +75,45 @@ type fileOpts struct {
 // TODO: add this as an option in aliasers. Specifically, if no args
 // are provided, then run the last command.
 // RunHistorical runs a previous command
-func (e *Emacs) RunHistorical(ws *commands.WorldState) bool {
-	if !ws.Values[historicalArg].Provided() {
+func (e *Emacs) RunHistorical(input *command.Input, output command.Output, data *command.Data, eData *command.ExecuteData) error {
+	if !data.Values[historicalArg].Provided() {
 		// print and return
 		for idx, pe := range e.PreviousExecutions {
 			revIdx := len(e.PreviousExecutions) - 1 - idx
-			ws.Cos.Stdout(fmt.Sprintf("%2d: %s", revIdx, strings.Join(pe, " ")))
+			output.Stdout("%2d: %s", revIdx, strings.Join(pe, " "))
 		}
-		return true
+		return nil
 	}
 
-	idx := int(ws.Values[historicalArg].Int())
+	idx := data.Values[historicalArg].Int()
 	// TODO: can this check be dynamic option (like IntNonNegative)?
 	if idx >= len(e.PreviousExecutions) {
-		ws.Cos.Stderr("%s is larger than list of stored commands", historicalArg)
-		return false
+		return output.Stderr("%s is larger than list of stored commands", historicalArg)
 	}
 
-	ws.Executable = append(ws.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1-idx])
-	return true
+	eData.Executable = append(eData.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1-idx])
+	return nil
 }
 
 // OpenEditor constructs an emacs command to open the specified files.
-func (e *Emacs) OpenEditor(ws *commands.WorldState) bool {
-	allowNewFiles := ws.Values[newFileArg].Bool()
-	ergs := ws.Values[emacsArg].StringList()
+func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *command.Data, eData *command.ExecuteData) error {
+	allowNewFiles := data.Values[newFileArg].Bool()
+	ergs := data.Values[emacsArg].StringList()
 
 	if len(ergs) == 0 {
 		if len(e.PreviousExecutions) == 0 {
-			ws.Cos.Stderr("no previous executions")
-			return false
+			return output.Stderr("no previous executions")
 		}
-		ws.Executable = append(ws.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1])
-		return true
+		eData.Executable = append(eData.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1])
+		return nil
 	}
 
 	// If only a directory was provided, then just cd into the directory.
 	if len(ergs) == 1 {
-		fi, _ := osStat(ergs[0])
+		fi, _ := os.Stat(ergs[0])
 		if fi != nil && fi.IsDir() {
-			ws.Executable = append(ws.Executable, []string{"cd", ergs[0]})
-			return true
+			eData.Executable = append(eData.Executable, []string{"cd", ergs[0]})
+			return nil
 		}
 	}
 
@@ -152,19 +143,10 @@ func (e *Emacs) OpenEditor(ws *commands.WorldState) bool {
 	sortedFiles := make([]*fileOpts, 0, len(ergs))
 	for i := len(files) - 1; i >= 0; i-- {
 		f := files[i]
-		if name, ok := e.AliasMap()[fileAliaserName][f.name]; ok {
-			// TODO: need to make Alias Command (already implemented) and Alias Arg (just for simple, but potentially multiple substitutions)
-			// The only difference really is the number of args to iterate across.
-			// So an alias for an entire command would be AliasNode(name, nodes, cli, 1)
-			// whereas an alias for a partial command would be AliasNode(name, nodes, cli, 4)
-			f.name = name.TODO
-		} else {
-			var err error
-			f.name, err = filepathAbs(f.name)
-			if err != nil {
-				ws.Cos.Stderr("failed to get absolute path for file %q: %v", f.name, err)
-				return false
-			}
+		var err error
+		f.name, err = filepath.Abs(f.name)
+		if err != nil {
+			return output.Stderr("failed to get absolute path for file %q: %v", f.name, err)
 		}
 		sortedFiles = append(sortedFiles, f)
 	}
@@ -172,60 +154,65 @@ func (e *Emacs) OpenEditor(ws *commands.WorldState) bool {
 	// Check all files exist, unless --new flag provided.
 	if !allowNewFiles {
 		for _, fo := range files {
-			if _, err := osStat(fo.name); os.IsNotExist(err) {
-				ws.Cos.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
-				return false
+			if _, err := os.Stat(fo.name); os.IsNotExist(err) {
+				return output.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
 			}
 		}
 	}
 
-	command := make([]string, 0, 1+2*len(sortedFiles))
-	command = append(command, "emacs")
-	command = append(command, "--no-window-system")
+	cmd := make([]string, 0, 1+2*len(sortedFiles))
+	cmd = append(cmd, "emacs")
+	cmd = append(cmd, "--no-window-system")
 	for _, f := range sortedFiles {
 		if f.lineNumber != 0 {
-			command = append(command, fmt.Sprintf("+%d", f.lineNumber))
+			cmd = append(cmd, fmt.Sprintf("+%d", f.lineNumber))
 		}
-		command = append(command, f.name)
+		cmd = append(cmd, f.name)
 	}
 
-	e.changed = true
-	e.PreviousExecutions = append(e.PreviousExecutions, command)
-	if len(e.PreviousExecutions) > historyLimit {
-		e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
+	// We only want to run changes afterwards.
+	eData.Executor = func(output command.Output, data *command.Data) error {
+		e.changed = true
+		e.PreviousExecutions = append(e.PreviousExecutions, cmd)
+		if len(e.PreviousExecutions) > historyLimit {
+			e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
+		}
+		return nil
 	}
 
-	ws.Executable = append(ws.Executable, command)
-	return true
+	eData.Executable = append(eData.Executable, cmd)
+	return nil
 }
 
 func (e *Emacs) Changed() bool {
 	return e.changed
 }
 
-func (e *Emacs) Option() *commands.Option { return nil }
+//func (e *Emacs) Option() *command.Option { return nil }
 
-func (e *Emacs) Node() *commands.Node {
-	completor := &commands.Completor{
-		SuggestionFetcher: &commands.FileFetcher{
+func (e *Emacs) Node() *command.Node {
+	completor := &command.Completor{
+		SuggestionFetcher: &command.FileFetcher{
 			Distinct: true,
 		},
 	}
 
-	return commands.BranchNode(
-		map[string]*commands.Node{
-			"h": commands.SerialNodes(
-				commands.IntArg(historicalArg, false, &commands.ArgOpt{Validators: []commands.ArgValidator{commands.IntNonNegative()}}),
-				commands.ExecutorNode(e.RunHistorical),
+	return command.BranchNode(
+		map[string]*command.Node{
+			"h": command.SerialNodes(
+				command.OptionalIntNode(historicalArg, &command.ArgOpt{Validators: []command.ArgValidator{command.IntNonNegative()}}),
+				command.SimpleProcessor(e.RunHistorical, nil),
 			),
 		},
-		commands.AliasNode("open-editor",
-			commands.SerialNodes(
-				commands.NewFlagNode(commands.BoolFlag(newFileArg, 'n')),
-				commands.StringListNode(emacsArg, 0, 4, &commands.ArgOpt{Completor: completor}),
-				commands.ExecutorNode(e.OpenEditor),
+		command.AliasNode(fileAliaserName, e,
+			command.SerialNodes(
+				command.NewFlagNode(command.BoolFlag(newFileArg, 'n')),
+				command.StringListNode(emacsArg, 0, 4, &command.ArgOpt{
+					Completor:   completor,
+					Transformer: command.FileListTransformer(),
+				}),
+				command.SimpleProcessor(e.OpenEditor, nil),
 			),
-			e,
 		),
 	)
 }
