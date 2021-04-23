@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -18,6 +17,7 @@ const (
 	aliasArg      = "ALIAS"
 	fileArg       = "FILE"
 	emacsArg      = "EMACS_ARG"
+	lineArg       = "LINE_NUMBER"
 	historicalArg = "COMMAND_IDX"
 	regexpArg     = "REGEXP"
 	newFileArg    = "new"
@@ -118,52 +118,27 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 	}
 
 	files := make([]*fileOpts, 0, len(ergs))
-	var fo *fileOpts
-	for _, erg := range ergs {
-		if fo == nil {
-			fo = &fileOpts{name: erg}
-			continue
-		}
-
-		lineNumber, err := strconv.Atoi(erg)
-		if err != nil {
-			files = append(files, fo)
-			fo = &fileOpts{name: erg}
-			continue
-		}
-
-		fo.lineNumber = lineNumber
-		files = append(files, fo)
-		fo = nil
-	}
-	if fo != nil {
-		files = append(files, fo)
-	}
-
-	sortedFiles := make([]*fileOpts, 0, len(ergs))
-	for i := len(files) - 1; i >= 0; i-- {
-		f := files[i]
-		var err error
-		f.name, err = filepath.Abs(f.name)
-		if err != nil {
-			return output.Stderr("failed to get absolute path for file %q: %v", f.name, err)
-		}
-		sortedFiles = append(sortedFiles, f)
-	}
-
-	// Check all files exist, unless --new flag provided.
-	if !allowNewFiles {
-		for _, fo := range files {
-			if _, err := os.Stat(fo.name); os.IsNotExist(err) {
-				return output.Stderr("file %q does not exist; include %q flag to create it", fo.name, newFileArg)
+	il := data.Values[lineArg].IntList()
+	for i := len(ergs) - 1; i >= 0; i-- {
+		erg := ergs[i]
+		// Check file exists, unless --new flag provided.
+		if !allowNewFiles {
+			if _, err := os.Stat(erg); os.IsNotExist(err) {
+				return output.Stderr("file %q does not exist; include %q flag to create it", erg, newFileArg)
 			}
 		}
+
+		var iv int
+		if i < len(il) {
+			iv = il[i]
+		}
+		files = append(files, &fileOpts{erg, iv})
 	}
 
-	cmd := make([]string, 0, 1+2*len(sortedFiles))
+	cmd := make([]string, 0, 1+2*len(files))
 	cmd = append(cmd, "emacs")
 	cmd = append(cmd, "--no-window-system")
-	for _, f := range sortedFiles {
+	for _, f := range files {
 		if f.lineNumber != 0 {
 			cmd = append(cmd, fmt.Sprintf("+%d", f.lineNumber))
 		}
@@ -191,12 +166,6 @@ func (e *Emacs) Changed() bool {
 //func (e *Emacs) Option() *command.Option { return nil }
 
 func (e *Emacs) Node() *command.Node {
-	completor := &command.Completor{
-		SuggestionFetcher: &command.FileFetcher{
-			Distinct: true,
-		},
-	}
-
 	return command.BranchNode(
 		map[string]*command.Node{
 			"h": command.SerialNodes(
@@ -204,15 +173,93 @@ func (e *Emacs) Node() *command.Node {
 				command.SimpleProcessor(e.RunHistorical, nil),
 			),
 		},
-		command.AliasNode(fileAliaserName, e,
-			command.SerialNodes(
-				command.NewFlagNode(command.BoolFlag(newFileArg, 'n')),
-				command.StringListNode(emacsArg, 0, 4, &command.ArgOpt{
-					Completor:   completor,
-					Transformer: command.FileListTransformer(),
-				}),
-				command.SimpleProcessor(e.OpenEditor, nil),
-			),
-		),
+		command.AliasNode(fileAliaserName, e, e.emacsArgNode()),
+		false,
 	)
+}
+
+func (e *Emacs) emacsArgNode() *command.Node {
+	completor := &command.Completor{
+		Distinct: true,
+		SuggestionFetcher: &command.FileFetcher{
+			Distinct: true,
+			IgnoreFunc: func(v *command.Value, d *command.Data) []string {
+				return d.Values[emacsArg].StringList()
+			},
+		},
+	}
+
+	opt := &command.ArgOpt{
+		Alias: &command.AliasOpt{
+			AliasName: fileAliaserName,
+			AliasCLI:  e,
+		},
+		Completor:   completor,
+		Transformer: command.FileTransformer(),
+		CustomSet: func(v *command.Value, d *command.Data) {
+			// TODO: CustomSet shouldn't be run if v wasn't provided.
+			// fix this in command package.
+			if !v.Provided() {
+				return
+			}
+			slv, ok := d.Values[emacsArg]
+			if !ok {
+				d.Set(emacsArg, command.StringListValue(v.String()))
+				return
+			} else {
+				d.Set(emacsArg, command.StringListValue(append(slv.StringList(), v.String())...))
+			}
+		},
+	}
+
+	intOpt := &command.ArgOpt{
+		CustomSet: func(v *command.Value, d *command.Data) {
+			sl := d.Values[emacsArg].StringList()
+			il := d.Values[lineArg].IntList()
+			for i := len(il); i < len(sl)-1; i++ {
+				il = append(il, 0)
+			}
+			il = append(il, v.Int())
+			d.Set(lineArg, command.IntListValue(il...))
+		},
+	}
+
+	n := &command.Node{
+		Processor: command.OptionalStringNode(emacsArg, opt),
+	}
+	in := &command.Node{
+		Processor: command.IntNode(lineArg, intOpt),
+		Edge:      command.SimpleEdge(n),
+	}
+	n.Edge = &emacsEdge{
+		next:    command.SerialNodes(command.SimpleProcessor(e.OpenEditor, nil)),
+		eNode:   n,
+		intNode: in,
+	}
+
+	return command.SerialNodesTo(n, command.NewFlagNode(command.BoolFlag(newFileArg, 'n')))
+}
+
+// TODO: make helper function command.EdgeFromFunc(func(...) (node, error)) {...}
+type emacsEdge struct {
+	next    *command.Node
+	eNode   *command.Node
+	intNode *command.Node
+}
+
+func (ee *emacsEdge) Next(input *command.Input, data *command.Data) (*command.Node, error) {
+	s, ok := input.Peek()
+	if !ok {
+		return ee.next, nil
+	}
+
+	if _, err := strconv.Atoi(s); err == nil {
+		return ee.intNode, nil
+	}
+
+	if len(data.Values[emacsArg].StringList()) >= 2 {
+		return ee.next, nil
+	}
+
+	return ee.eNode, nil
 }

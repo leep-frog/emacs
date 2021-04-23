@@ -34,10 +34,10 @@ func TestLoad(t *testing.T) {
 		},
 		{
 			name: "properly unmarshals",
-			json: fmt.Sprintf(`{"Aliases":{"%s":{"city":{"Type":"String","String":path("catan", "oreAndWheat")}}},"PreviousExecutions":null}`, fileAliaserName),
+			json: fmt.Sprintf(`{"Aliases":{"%s":{"city":["catan", "oreAndWheat"]}},"PreviousExecutions":null}`, fileAliaserName),
 			want: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
+					"city": {"catan", "oreAndWheat"},
 				},
 				},
 			},
@@ -62,7 +62,7 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-/*func TestAutocomplete(t *testing.T) {
+func TestAutocomplete(t *testing.T) {
 	e := &Emacs{
 		Aliases: map[string]map[string][]string{fileAliaserName: {
 			"salt": {path("compounds", "sodiumChloride")},
@@ -76,6 +76,7 @@ func TestLoad(t *testing.T) {
 		args []string
 		want []string
 	}{
+		// TODO: fix this in command package.
 		{
 			name: "doesn't suggest subcommands",
 			want: []string{
@@ -150,14 +151,13 @@ func TestLoad(t *testing.T) {
 		},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			commands.GenericAutocomplete()
-			suggestions := commands.Autocomplete(e.Node(), test.args, -1)
+			suggestions := command.Autocomplete(e.Node(), test.args)
 			if diff := cmp.Diff(test.want, suggestions); diff != "" {
 				t.Errorf("Complete(%v) produced diff (-want, +got):\n%s", test.args, diff)
 			}
 		})
 	}
-}*/
+}
 
 func TestEmacsExecution(t *testing.T) {
 	for _, test := range []struct {
@@ -176,12 +176,12 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name:       "error when too many arguments",
 			e:          &Emacs{},
-			args:       []string{"file1", "file2", "file3", "file4", "file5"},
-			wantStderr: []string{"Unprocessed extra args: [file5]"},
-			wantErr:    fmt.Errorf("Unprocessed extra args: [file5]"),
+			args:       []string{path("alpha.txt"), path("alpha.go"), path("file3")},
+			wantStderr: []string{fmt.Sprintf("Unprocessed extra args: [%s]", path("file3"))},
+			wantErr:    fmt.Errorf("Unprocessed extra args: [%s]", path("file3")),
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue("file1", "file2", "file3", "file4"),
+					emacsArg: command.StringListValue(absPath(t, "alpha.txt"), absPath(t, "alpha.go")),
 				},
 			},
 		},
@@ -204,20 +204,21 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "fails if file does not exist and new flag not provided",
 			e:    &Emacs{},
-			args: []string{"newFile.txt"},
+			args: []string{path("newFile.txt")},
 			wantStderr: []string{
-				`file "newFile.txt" does not exist; include "new" flag to create it`,
+				fmt.Sprintf(`file %q does not exist; include "new" flag to create it`, absPath(t, "newFile.txt")),
 			},
+			wantErr: fmt.Errorf(`file %q does not exist; include "new" flag to create it`, absPath(t, "newFile.txt")),
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue("newFile.txt"),
+					emacsArg: command.StringListValue(absPath(t, "newFile.txt")),
 				},
 			},
 		},
 		{
 			name: "creates new file if short new flag is provided",
 			e:    &Emacs{},
-			args: []string{"newFile.txt", "-n"},
+			args: []string{path("newFile.txt"), "-n"},
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
 					emacsArg:   command.StringListValue(absPath(t, "newFile.txt")),
@@ -228,21 +229,21 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					"newFile.txt",
+					absPath(t, "newFile.txt"),
 				}},
 			},
 			want: &Emacs{
 				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
-					"newFile.txt",
+					absPath(t, "newFile.txt"),
 				}},
 			},
 		},
 		{
 			name: "creates new file if new flag is provided",
 			e:    &Emacs{},
-			args: []string{"newFile.txt", "--new"},
+			args: []string{path("newFile.txt"), "--new"},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
 					"emacs",
@@ -252,7 +253,7 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg:   command.StringListValue("newFile.txt"),
+					emacsArg:   command.StringListValue(absPath(t, "newFile.txt")),
 					newFileArg: command.BoolValue(true),
 				},
 			},
@@ -260,12 +261,12 @@ func TestEmacsExecution(t *testing.T) {
 				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
-					"newFile.txt",
+					absPath(t, "newFile.txt"),
 				}},
 			},
 		},
 		{
-			name: "handles files and alises",
+			name: "handles all aliases",
 			e: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"salt": {path("compounds", "sodiumChloride")},
@@ -273,10 +274,10 @@ func TestEmacsExecution(t *testing.T) {
 				},
 				},
 			},
-			args: []string{"first.txt", "salt", "city", "fourth.go"},
+			args: []string{"salt", "city"},
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue("current/dir/first.txt", path("compounds", "sodiumChloride"), path("catan", "oreAndWheat"), "current/dir/fourth.go"),
+					emacsArg: command.StringListValue(absPath(t, "compounds", "sodiumChloride"), absPath(t, "catan", "oreAndWheat")),
 				},
 			},
 			want: &Emacs{
@@ -288,20 +289,16 @@ func TestEmacsExecution(t *testing.T) {
 				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
-					filepath.Join("current/dir", "fourth.go"),
-					path("catan", "oreAndWheat"),
-					path("compounds", "sodiumChloride"),
-					filepath.Join("current/dir", "first.txt"),
+					absPath(t, "catan", "oreAndWheat"),
+					absPath(t, "compounds", "sodiumChloride"),
 				}},
 			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					filepath.Join("current/dir", "fourth.go"),
-					path("catan", "oreAndWheat"),
-					path("compounds", "sodiumChloride"),
-					filepath.Join("current/dir", "first.txt"),
+					absPath(t, "catan", "oreAndWheat"),
+					absPath(t, "compounds", "sodiumChloride"),
 				}},
 			},
 		},
@@ -314,10 +311,14 @@ func TestEmacsExecution(t *testing.T) {
 				},
 				},
 			},
-			args: []string{"first.txt", "salt", "32", "fourth.go"},
+			args: []string{path("alpha.txt"), "salt", "32"},
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue("home/first.txt", path("compounds", "sodiumChloride"), "32", "home/fourth.txt"),
+					emacsArg: command.StringListValue(
+						absPath(t, "alpha.txt"),
+						absPath(t, "compounds", "sodiumChloride"),
+					),
+					lineArg: command.IntListValue(0, 32),
 				},
 			},
 			want: &Emacs{
@@ -329,20 +330,18 @@ func TestEmacsExecution(t *testing.T) {
 				PreviousExecutions: [][]string{{
 					"emacs",
 					"--no-window-system",
-					filepath.Join("home", "fourth.go"),
 					"+32",
-					path("compounds", "sodiumChloride"),
-					filepath.Join("home", "first.txt"),
+					absPath(t, "compounds", "sodiumChloride"),
+					absPath(t, "alpha.txt"),
 				}},
 			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					filepath.Join("home", "fourth.go"),
 					"+32",
-					path("compounds", "sodiumChloride"),
-					filepath.Join("home", "first.txt"),
+					absPath(t, "compounds", "sodiumChloride"),
+					absPath(t, "alpha.txt"),
 				}},
 			},
 		},
@@ -358,7 +357,8 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"salt", "32", path("42")},
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue(absPath(t, "compounds", "sodiumChloride"), "32", absPath(t, "14")),
+					emacsArg: command.StringListValue(absPath(t, "compounds", "sodiumChloride"), absPath(t, "42")),
+					lineArg:  command.IntListValue(32),
 				},
 			},
 			want: &Emacs{
@@ -372,16 +372,16 @@ func TestEmacsExecution(t *testing.T) {
 					"--no-window-system",
 					absPath(t, "42"),
 					"+32",
-					path("compounds", "sodiumChloride"),
+					absPath(t, "compounds", "sodiumChloride"),
 				}},
 			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					filepath.Join("here", "14"),
+					absPath(t, "42"),
 					"+32",
-					path("compounds", "sodiumChloride"),
+					absPath(t, "compounds", "sodiumChloride"),
 				}},
 			},
 		},
@@ -560,11 +560,6 @@ func TestEmacsExecution(t *testing.T) {
 			e:          &Emacs{},
 			wantStderr: []string{"no previous executions"},
 			wantErr:    fmt.Errorf("no previous executions"),
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue(),
-				},
-			},
 		},
 		{
 			name: "if nil argument, run last command",
@@ -590,11 +585,6 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue(),
-				},
-			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
 					"emacs",
@@ -606,11 +596,6 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "if empty arguments, run last command",
 			args: []string{},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue(),
-				},
-			},
 			e: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"city": {path("catan", "oreAndWheat")},
@@ -643,7 +628,7 @@ func TestEmacsExecution(t *testing.T) {
 		},
 		// AddAlias tests
 		// TODO: single args should fail before validation.
-		/*{
+		{
 			name:       "fails if no alias",
 			args:       []string{"a"},
 			wantStderr: []string{`validation failed: [MinLength] value must be at least 1 character`},
@@ -751,7 +736,7 @@ func TestEmacsExecution(t *testing.T) {
 				}},
 			},
 		},
-		/*{
+		{
 			name: "adds alias for directory",
 			e:    &Emacs{},
 			args: []string{"a", "t", path("dirA")},
@@ -860,14 +845,14 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"l"},
 			e: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"salt": {path("compounds", "sodiumChloride")},
-					"city": {path("catan", "oreAndWheat")},
+					"salt": {"compounds/sodiumChloride"},
+					"city": {"catan", "oreAndWheat"},
 					"4":    {"2+2"},
 				}},
 			},
 			wantStdout: []string{
 				"4: 2+2",
-				"city: catan/oreAndWheat",
+				"city: catan oreAndWheat",
 				"salt: compounds/sodiumChloride",
 			},
 		},
@@ -924,8 +909,8 @@ func TestEmacsExecution(t *testing.T) {
 			args: []string{"g", "salt"},
 			e: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"salt": {path("compounds", "sodiumChloride")},
-					"city": {path("catan", "oreAndWheat")},
+					"salt": {"compounds/sodiumChloride"},
+					"city": {"catan/oreAndWheat"},
 					"4":    {"2+2"},
 				}},
 			},
@@ -973,8 +958,8 @@ func TestEmacsExecution(t *testing.T) {
 			e: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"water": {"liquids/compounds/hydrogenDioxide"},
-					"salt":  {path("compounds", "sodiumChloride")},
-					"city":  {path("catan", "oreAndWheat")},
+					"salt":  {"compounds/sodiumChloride"},
+					"city":  {"catan/oreAndWheat"},
 					"4":     {"2+2"},
 				},
 				},
@@ -1186,29 +1171,6 @@ func TestEmacsExecution(t *testing.T) {
 		/* Useful for commenting out tests. */
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			fmt.Println(test.name, "====================")
-			/*oldStat := osStat
-			osStat = func(string) (os.FileInfo, error) { return test.osStatInfo, test.osStatErr }
-			defer func() { osStat = oldStat }()
-
-			oldAbs := filepathAbs
-			filepathAbs = func(s string) (string, error) {
-				p, ok := test.absolutePath[s]
-				if !ok {
-					p = s
-				}
-				err, ok := test.absolutePathErr[s]
-				if !ok {
-					err = nil
-				}
-				return p, err
-			}
-			defer func() { filepathAbs = oldAbs }()*/
-
-			/*oldFileAliaser := fileAliaser
-			fileAliaser = func() commands.Aliaser { return commands.TestFileAliaser(osStat, filepathAbs) }
-			defer func() { fileAliaser = oldFileAliaser }()*/
-
 			if test.limitOverride != 0 {
 				oldLimit := historyLimit
 				historyLimit = test.limitOverride
@@ -1237,6 +1199,7 @@ func TestEmacsExecution(t *testing.T) {
 					// TODO: remove this once set is moved into a separate proto message.
 					//cmpopts.IgnoreFields(commands.Value{}, "Set"),
 					protocmp.Transform(),
+					cmpopts.EquateEmpty(),
 				}
 				if diff := cmp.Diff(test.want, test.e, opts...); diff != "" {
 					t.Fatalf("Execute(%v) produced emacs diff (-want, +got):\n%s", test.args, diff)

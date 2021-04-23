@@ -39,6 +39,16 @@ github.com/leep-frog/command v0.0.0-20210422210726-7f69d22e92d4 h1:WgiyqZNasjnTQ
 github.com/leep-frog/command v0.0.0-20210422210726-7f69d22e92d4/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 github.com/leep-frog/command v0.0.0-20210423024523-46062e6f8f86 h1:875el22MqsXfkIrKMePHLQhZZ7aKjjNK1P00e4g4M14=
 github.com/leep-frog/command v0.0.0-20210423024523-46062e6f8f86/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210423032742-07d9d768f415 h1:btNTndaGDi1a5gyh1sDs7qg31s6UP7uDhrNcK0ZDc+c=
+github.com/leep-frog/command v0.0.0-20210423032742-07d9d768f415/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210423120526-af15e75ab2e7 h1:PX9tM6pNIsnWqGUcPyjDKeLoP7HF6+vSJ7+jYkDj0Yc=
+github.com/leep-frog/command v0.0.0-20210423120526-af15e75ab2e7/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210423122714-67cf0c4a049c h1:GVk2gqbHXzUP6QPwZdQHc3wb96OjMecwZSM9vGA7X6U=
+github.com/leep-frog/command v0.0.0-20210423122714-67cf0c4a049c/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210423123511-3acb25ee7d81 h1:QihLyVRB6thhRQN71y+AarerNKaagjsJEKH1AmcmkYU=
+github.com/leep-frog/command v0.0.0-20210423123511-3acb25ee7d81/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210423125156-90973b808889 h1:Yo1x2lfT7il9ymYjVYYhSM4KfQRi9RPUqM47JQ80xGY=
+github.com/leep-frog/command v0.0.0-20210423125156-90973b808889/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 github.com/leep-frog/commands v1.0.0 h1:5qpHgjqNg2p61qo89LWktnynFoGBoUcMDVyxxVGZI30=
 github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655 h1:9XQIxdufniZlWKWObVWekCUOU5HVKBlAa4cHATecB+E=
 github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655/go.mod h1:JiPTp+skgvKR98FS3nl6mdtzA2pB6BEFra2YR7XkMKA=
