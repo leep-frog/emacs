@@ -165,6 +165,8 @@ func (e *Emacs) Changed() bool {
 
 //func (e *Emacs) Option() *command.Option { return nil }
 
+func (e *Emacs) Alias() string { return "e" }
+
 func (e *Emacs) Node() *command.Node {
 	return command.BranchNode(
 		map[string]*command.Node{
