@@ -31,6 +31,10 @@ var (
 	historyLimit = 25
 )
 
+func CLI() *Emacs {
+	return &Emacs{}
+}
+
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
 	Aliases            map[string]map[string][]string
