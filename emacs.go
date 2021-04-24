@@ -45,6 +45,8 @@ func (e *Emacs) AliasMap() map[string]map[string][]string {
 	return e.Aliases
 }
 
+func (e *Emacs) Setup() []string { return nil }
+
 func (e *Emacs) MarkChanged() {
 	e.changed = true
 }
@@ -162,8 +164,6 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 func (e *Emacs) Changed() bool {
 	return e.changed
 }
-
-//func (e *Emacs) Option() *command.Option { return nil }
 
 func (e *Emacs) Alias() string { return "e" }
 
