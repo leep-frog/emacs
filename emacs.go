@@ -53,7 +53,7 @@ func (e *Emacs) MarkChanged() {
 
 // Name returns the name of the CLI.
 func (e *Emacs) Name() string {
-	return "emacs-shortcuts"
+	return "e"
 }
 
 // Load creates an Emacs object from a JSON string.
@@ -164,8 +164,6 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 func (e *Emacs) Changed() bool {
 	return e.changed
 }
-
-func (e *Emacs) Alias() string { return "e" }
 
 func (e *Emacs) Node() *command.Node {
 	return command.BranchNode(

@@ -1238,7 +1238,7 @@ func (fi fakeFileInfo) Sys() interface{}   { return nil }
 
 func TestMetadata(t *testing.T) {
 	e := &Emacs{}
-	want := "emacs-shortcuts"
+	want := "e"
 	if e.Name() != want {
 		t.Errorf("Incorrect emacs name: got %s; want %s", e.Name(), want)
 	}
