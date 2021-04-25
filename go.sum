@@ -49,6 +49,8 @@ github.com/leep-frog/command v0.0.0-20210423123511-3acb25ee7d81 h1:QihLyVRB6thhR
 github.com/leep-frog/command v0.0.0-20210423123511-3acb25ee7d81/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 github.com/leep-frog/command v0.0.0-20210423125156-90973b808889 h1:Yo1x2lfT7il9ymYjVYYhSM4KfQRi9RPUqM47JQ80xGY=
 github.com/leep-frog/command v0.0.0-20210423125156-90973b808889/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210425185118-ee3950f19318 h1:YQKIqtwmyXE7cUi3+FNZZXH1gMaiUDBL123fL4aRk38=
+github.com/leep-frog/command v0.0.0-20210425185118-ee3950f19318/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 github.com/leep-frog/commands v1.0.0 h1:5qpHgjqNg2p61qo89LWktnynFoGBoUcMDVyxxVGZI30=
 github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655 h1:9XQIxdufniZlWKWObVWekCUOU5HVKBlAa4cHATecB+E=
 github.com/leep-frog/commands v1.0.1-0.20201012144621-3126d8e59655/go.mod h1:JiPTp+skgvKR98FS3nl6mdtzA2pB6BEFra2YR7XkMKA=

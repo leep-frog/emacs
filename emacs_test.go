@@ -184,6 +184,16 @@ func TestEmacsExecution(t *testing.T) {
 					emacsArg: command.StringListValue(absPath(t, "alpha.txt"), absPath(t, "alpha.go")),
 				},
 			},
+			wantEData: &command.ExecuteData{
+				Executable: [][]string{
+					{
+						"emacs",
+						"--no-window-system",
+						absPath(t, "alpha.go"),
+						absPath(t, "alpha.txt"),
+					},
+				},
+			},
 		},
 		{
 			name: "cds into directory",
@@ -631,13 +641,8 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name:       "fails if no alias",
 			args:       []string{"a"},
-			wantStderr: []string{`validation failed: [MinLength] value must be at least 1 character`},
-			wantErr:    fmt.Errorf(`validation failed: [MinLength] value must be at least 1 character`),
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					"ALIAS": command.StringValue(""),
-				},
-			},
+			wantStderr: []string{"not enough arguments"},
+			wantErr:    fmt.Errorf("not enough arguments"),
 		},
 		// TODO: disallow alias with no values.
 		{
@@ -761,11 +766,6 @@ func TestEmacsExecution(t *testing.T) {
 			args:       []string{"d"},
 			wantStderr: []string{"not enough arguments"},
 			wantErr:    fmt.Errorf("not enough arguments"),
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					"ALIAS": command.StringListValue(),
-				},
-			},
 		},
 		{
 			name: "ignores unknown alias",
@@ -864,11 +864,6 @@ func TestEmacsExecution(t *testing.T) {
 			wantStderr: []string{
 				fmt.Sprintf("not enough arguments"),
 			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					"ALIAS": command.StringListValue(),
-				},
-			},
 			wantErr: fmt.Errorf("not enough arguments"),
 		},
 		{
@@ -930,11 +925,6 @@ func TestEmacsExecution(t *testing.T) {
 			e:    &Emacs{},
 			wantStderr: []string{
 				fmt.Sprintf("not enough arguments"),
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					"regexp": command.StringListValue(),
-				},
 			},
 			wantErr: fmt.Errorf("not enough arguments"),
 		},
@@ -998,11 +988,6 @@ func TestEmacsExecution(t *testing.T) {
 						"--no-window-system",
 						"File", "three",
 					},
-				},
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					historicalArg: command.IntValue(0),
 				},
 			},
 			wantStdout: []string{
