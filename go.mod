@@ -5,7 +5,7 @@ go 1.14
 require (
 	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/google/go-cmp v0.5.5
-	github.com/leep-frog/command v0.0.0-20210425185118-ee3950f19318
+	github.com/leep-frog/command v0.0.0-20210425192901-c2aa054028b6
 	github.com/leep-frog/commands v1.1.1-0.20210329041758-7de07d731bbf
 	google.golang.org/protobuf v1.25.0
 )

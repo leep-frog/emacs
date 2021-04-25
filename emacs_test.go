@@ -210,6 +210,11 @@ func TestEmacsExecution(t *testing.T) {
 					emacsArg: command.StringListValue(absPath(t, "dirA")),
 				},
 			},
+			want: &Emacs{
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "dirA")},
+				},
+			},
 		},
 		{
 			name: "fails if file does not exist and new flag not provided",
@@ -222,6 +227,11 @@ func TestEmacsExecution(t *testing.T) {
 			wantData: &command.Data{
 				Values: map[string]*command.Value{
 					emacsArg: command.StringListValue(absPath(t, "newFile.txt")),
+				},
+			},
+			want: &Emacs{
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "newFile.txt")},
 				},
 			},
 		},
@@ -243,11 +253,12 @@ func TestEmacsExecution(t *testing.T) {
 				}},
 			},
 			want: &Emacs{
-				PreviousExecutions: [][]string{{
-					"emacs",
-					"--no-window-system",
-					absPath(t, "newFile.txt"),
-				}},
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "newFile.txt"),
+						"-n",
+					},
+				},
 			},
 		},
 		{
@@ -268,11 +279,12 @@ func TestEmacsExecution(t *testing.T) {
 				},
 			},
 			want: &Emacs{
-				PreviousExecutions: [][]string{{
-					"emacs",
-					"--no-window-system",
-					absPath(t, "newFile.txt"),
-				}},
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "newFile.txt"),
+						"--new",
+					},
+				},
 			},
 		},
 		{
@@ -291,16 +303,15 @@ func TestEmacsExecution(t *testing.T) {
 				},
 			},
 			want: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"salt": {path("compounds", "sodiumChloride")},
-					"city": {path("catan", "oreAndWheat")},
+				Aliases: map[string]map[string][]string{
+					fileAliaserName: {
+						"salt": {path("compounds", "sodiumChloride")},
+						"city": {path("catan", "oreAndWheat")},
+					},
 				},
-				},
-				PreviousExecutions: [][]string{{
-					"emacs",
-					"--no-window-system",
-					absPath(t, "catan", "oreAndWheat"),
+				Caches: map[string][]string{cacheName: {
 					absPath(t, "compounds", "sodiumChloride"),
+					absPath(t, "catan", "oreAndWheat"),
 				}},
 			},
 			wantEData: &command.ExecuteData{
@@ -337,13 +348,13 @@ func TestEmacsExecution(t *testing.T) {
 					"city": {path("catan", "oreAndWheat")},
 				},
 				},
-				PreviousExecutions: [][]string{{
-					"emacs",
-					"--no-window-system",
-					"+32",
-					absPath(t, "compounds", "sodiumChloride"),
-					absPath(t, "alpha.txt"),
-				}},
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "alpha.txt"),
+						absPath(t, "compounds", "sodiumChloride"),
+						"32",
+					},
+				},
 			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
@@ -377,13 +388,13 @@ func TestEmacsExecution(t *testing.T) {
 					"city": {path("catan", "oreAndWheat")},
 				},
 				},
-				PreviousExecutions: [][]string{{
-					"emacs",
-					"--no-window-system",
-					absPath(t, "42"),
-					"+32",
-					absPath(t, "compounds", "sodiumChloride"),
-				}},
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "compounds", "sodiumChloride"),
+						"32",
+						absPath(t, "42"),
+					},
+				},
 			},
 			wantEData: &command.ExecuteData{
 				Executable: [][]string{{
@@ -402,16 +413,9 @@ func TestEmacsExecution(t *testing.T) {
 					"city": {path("catan", "oreAndWheat")},
 				},
 				},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
+				Caches: map[string][]string{
+					cacheName: {
 						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
 					},
 				},
 			},
@@ -426,20 +430,8 @@ func TestEmacsExecution(t *testing.T) {
 					"city": {path("catan", "oreAndWheat")},
 				},
 				},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
+				Caches: map[string][]string{
+					cacheName: {
 						absPath(t, "luckyNumberThree"),
 					},
 				},
@@ -460,16 +452,9 @@ func TestEmacsExecution(t *testing.T) {
 					"city": {path("catan", "oreAndWheat")},
 				},
 				},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
+				Caches: map[string][]string{
+					cacheName: {
 						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
 					},
 				},
 			},
@@ -483,15 +468,8 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"city": {path("catan", "oreAndWheat")},
 				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
+				Caches: map[string][]string{
+					cacheName: {
 						absPath(t, "luckyNumberThree"),
 					},
 				},
@@ -505,71 +483,10 @@ func TestEmacsExecution(t *testing.T) {
 			},
 		},
 		{
-			name:          "reduces size of previous executions if over limit",
-			limitOverride: 2,
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"3rdFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"FourthFile",
-					},
-				},
-			},
-			args: []string{path("luckyNumberFive")},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					emacsArg: command.StringListValue(absPath(t, "luckyNumberFive")),
-				},
-			},
-			want: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"FourthFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "luckyNumberFive"),
-					},
-				},
-			},
-			wantEData: &command.ExecuteData{
-				Executable: [][]string{{
-					"emacs",
-					"--no-window-system",
-					absPath(t, "luckyNumberFive"),
-				}},
-			},
-		},
-		{
-			name:       "if empty PreviousExecutions and no arguments, error",
+			name:       "if empty cache and no arguments, error",
 			e:          &Emacs{},
-			wantStderr: []string{"no previous executions"},
-			wantErr:    fmt.Errorf("no previous executions"),
+			wantErr:    fmt.Errorf("not enough arguments"),
+			wantStderr: []string{"not enough arguments"},
 		},
 		{
 			name: "if nil argument, run last command",
@@ -577,21 +494,9 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"city": {path("catan", "oreAndWheat")},
 				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"3rdFile",
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "alpha.go"),
 					},
 				},
 			},
@@ -599,8 +504,13 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					"3rdFile",
+					absPath(t, "alpha.go"),
 				}},
+			},
+			wantData: &command.Data{
+				Values: map[string]*command.Value{
+					emacsArg: command.StringListValue(absPath(t, "alpha.go")),
+				},
 			},
 		},
 		{
@@ -610,21 +520,9 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"city": {path("catan", "oreAndWheat")},
 				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2ndFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"3rdFile",
+				Caches: map[string][]string{
+					cacheName: {
+						absPath(t, "alpha.go"),
 					},
 				},
 			},
@@ -632,12 +530,16 @@ func TestEmacsExecution(t *testing.T) {
 				Executable: [][]string{{
 					"emacs",
 					"--no-window-system",
-					"3rdFile",
+					absPath(t, "alpha.go"),
 				}},
+			},
+			wantData: &command.Data{
+				Values: map[string]*command.Value{
+					emacsArg: command.StringListValue(absPath(t, "alpha.go")),
+				},
 			},
 		},
 		// AddAlias tests
-		// TODO: single args should fail before validation.
 		{
 			name:       "fails if no alias",
 			args:       []string{"a"},
@@ -681,6 +583,11 @@ func TestEmacsExecution(t *testing.T) {
 					emacsArg: command.StringListValue(absPath(t, "newFile.txt")),
 				},
 			},
+			want: &Emacs{
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "newFile.txt")},
+				},
+			},
 			wantErr:    fmt.Errorf(`file %q does not exist; include "new" flag to create it`, absPath(t, "newFile.txt")),
 			wantStderr: []string{fmt.Sprintf(`file %q does not exist; include "new" flag to create it`, absPath(t, "newFile.txt"))},
 		},
@@ -698,6 +605,9 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"uno": {absPath(t, "alpha.go")},
 				}},
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "alpha.go")},
+				},
 			},
 		},
 		{
@@ -716,6 +626,9 @@ func TestEmacsExecution(t *testing.T) {
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"uno": {absPath(t, "alpha.txt")},
 				}},
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "alpha.txt")},
+				},
 			},
 		},
 		{
@@ -739,6 +652,9 @@ func TestEmacsExecution(t *testing.T) {
 					"ab":    {path("cd")},
 					"un":    {absPath(t, "alpha.go")},
 				}},
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "alpha.go")},
+				},
 			},
 		},
 		{
@@ -751,12 +667,13 @@ func TestEmacsExecution(t *testing.T) {
 					emacsArg: command.StringListValue(absPath(t, "dirA")),
 				},
 			},
-			// TODO: add alias should transform and then add alias
-			// test in command package first and then retry tests here.
 			want: &Emacs{
 				Aliases: map[string]map[string][]string{fileAliaserName: {
 					"t": {absPath(t, "dirA")},
 				}},
+				Caches: map[string][]string{
+					cacheName: []string{absPath(t, "dirA")},
+				},
 			},
 		},
 		// DeleteAliases tests
@@ -964,195 +881,6 @@ func TestEmacsExecution(t *testing.T) {
 				"water: liquids/compounds/hydrogenDioxide",
 			},
 		},
-		// RunHistorical
-		{
-			name: "prints historical commands if no index given",
-			args: []string{"h"},
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2nd", "File",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"File", "three",
-					},
-				},
-			},
-			wantStdout: []string{
-				" 2: emacs --no-window-system firstFile",
-				" 1: emacs --no-window-system 2nd File",
-				" 0: emacs --no-window-system File three",
-			},
-		},
-		{
-			name: "historical fails if negative idx",
-			args: []string{"h", "-1"},
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2nd", "File",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"File", "three",
-					},
-				},
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					historicalArg: command.IntValue(-1),
-				},
-			},
-			wantStderr: []string{
-				// TODO: modify commands package to produce a better message here.
-				"validation failed: [IntNonNegative] value isn't non-negative",
-			},
-			wantErr: fmt.Errorf("validation failed: [IntNonNegative] value isn't non-negative"),
-		},
-		{
-			name: "historical fails if index is too large",
-			args: []string{"h", "3"},
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2nd", "File",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"File", "three",
-					},
-				},
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					historicalArg: command.IntValue(3),
-				},
-			},
-			wantStderr: []string{
-				fmt.Sprintf("%s is larger than list of stored commands", historicalArg),
-			},
-			wantErr: fmt.Errorf("%s is larger than list of stored commands", historicalArg),
-		},
-		{
-			name: "historical returns 0 index",
-			args: []string{"h", "0"},
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2nd", "File",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"File", "three",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"fourth",
-					},
-				},
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					historicalArg: command.IntValue(0),
-				},
-			},
-			wantEData: &command.ExecuteData{
-				Executable: [][]string{{
-					"emacs",
-					"--no-window-system",
-					"fourth",
-				}},
-			},
-		},
-		{
-			name: "historical returns 2 index",
-			args: []string{"h", "2"},
-			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				}},
-				PreviousExecutions: [][]string{
-					{
-						"emacs",
-						"--no-window-system",
-						"firstFile",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"2nd", "File",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"File", "three",
-					},
-					{
-						"emacs",
-						"--no-window-system",
-						"fourth",
-					},
-				},
-			},
-			wantData: &command.Data{
-				Values: map[string]*command.Value{
-					historicalArg: command.IntValue(2),
-				},
-			},
-			wantEData: &command.ExecuteData{
-				Executable: [][]string{{
-					"emacs",
-					"--no-window-system",
-					"2nd", "File",
-				}},
-			},
-		},
 		/* Useful for commenting out tests. */
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -1177,12 +905,8 @@ func TestEmacsExecution(t *testing.T) {
 
 			// Only check diff if we are expecting a change.
 			if wantChanged {
-				//b, _ := json.Marshal(test.want)
-				//fmt.Println(string(b))
 				opts := []cmp.Option{
 					cmpopts.IgnoreUnexported(Emacs{}), // commands.Value{}),
-					// TODO: remove this once set is moved into a separate proto message.
-					//cmpopts.IgnoreFields(commands.Value{}, "Set"),
 					protocmp.Transform(),
 					cmpopts.EquateEmpty(),
 				}

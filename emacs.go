@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"os"
 	"strconv"
-	"strings"
 
 	"github.com/leep-frog/command"
 )
@@ -23,6 +22,7 @@ const (
 	newFileArg    = "new"
 
 	fileAliaserName = "fileAliases"
+	cacheName       = "emacsCache"
 )
 
 var (
@@ -37,9 +37,9 @@ func CLI() *Emacs {
 
 type Emacs struct {
 	// Aliases is a map from alias to full file path.
-	Aliases            map[string]map[string][]string
-	PreviousExecutions [][]string
-	changed            bool
+	Aliases map[string]map[string][]string
+	changed bool
+	Caches  map[string][]string
 }
 
 func (e *Emacs) AliasMap() map[string]map[string][]string {
@@ -78,41 +78,10 @@ type fileOpts struct {
 	lineNumber int
 }
 
-// TODO: add this as an option in aliasers. Specifically, if no args
-// are provided, then run the last command.
-// RunHistorical runs a previous command
-func (e *Emacs) RunHistorical(input *command.Input, output command.Output, data *command.Data, eData *command.ExecuteData) error {
-	if !data.Values[historicalArg].Provided() {
-		// print and return
-		for idx, pe := range e.PreviousExecutions {
-			revIdx := len(e.PreviousExecutions) - 1 - idx
-			output.Stdout("%2d: %s", revIdx, strings.Join(pe, " "))
-		}
-		return nil
-	}
-
-	idx := data.Values[historicalArg].Int()
-	// TODO: can this check be dynamic option (like IntNonNegative)?
-	if idx >= len(e.PreviousExecutions) {
-		return output.Stderr("%s is larger than list of stored commands", historicalArg)
-	}
-
-	eData.Executable = append(eData.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1-idx])
-	return nil
-}
-
 // OpenEditor constructs an emacs command to open the specified files.
 func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *command.Data, eData *command.ExecuteData) error {
 	allowNewFiles := data.Values[newFileArg].Bool()
 	ergs := data.Values[emacsArg].StringList()
-
-	if len(ergs) == 0 {
-		if len(e.PreviousExecutions) == 0 {
-			return output.Stderr("no previous executions")
-		}
-		eData.Executable = append(eData.Executable, e.PreviousExecutions[len(e.PreviousExecutions)-1])
-		return nil
-	}
 
 	// If only a directory was provided, then just cd into the directory.
 	if len(ergs) == 1 {
@@ -151,16 +120,6 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 		cmd = append(cmd, f.name)
 	}
 
-	// We only want to run changes afterwards.
-	eData.Executor = func(output command.Output, data *command.Data) error {
-		e.changed = true
-		e.PreviousExecutions = append(e.PreviousExecutions, cmd)
-		if len(e.PreviousExecutions) > historyLimit {
-			e.PreviousExecutions = e.PreviousExecutions[len(e.PreviousExecutions)-historyLimit:]
-		}
-		return nil
-	}
-
 	eData.Executable = append(eData.Executable, cmd)
 	return nil
 }
@@ -169,8 +128,17 @@ func (e *Emacs) Changed() bool {
 	return e.changed
 }
 
+func (e *Emacs) Cache() map[string][]string {
+	if e.Caches == nil {
+		e.Caches = map[string][]string{}
+	}
+	return e.Caches
+}
+
 func (e *Emacs) Node() *command.Node {
-	return command.BranchNode(
+	// We don't want to cache alias commands.
+	return command.AliasNode(fileAliaserName, e, command.CacheNode(cacheName, e, e.emacsArgNode()))
+	/*return command.BranchNode(
 		map[string]*command.Node{
 			"h": command.SerialNodes(
 				command.OptionalIntNode(historicalArg, &command.ArgOpt{Validators: []command.ArgValidator{command.IntNonNegative()}}),
@@ -179,7 +147,7 @@ func (e *Emacs) Node() *command.Node {
 		},
 		command.AliasNode(fileAliaserName, e, e.emacsArgNode()),
 		false,
-	)
+	)*/
 }
 
 func (e *Emacs) emacsArgNode() *command.Node {
@@ -229,19 +197,36 @@ func (e *Emacs) emacsArgNode() *command.Node {
 	}
 
 	n := &command.Node{
-		Processor: command.OptionalStringNode(emacsArg, opt),
+		Processor: command.StringNode(emacsArg, opt),
 	}
 	in := &command.Node{
 		Processor: command.IntNode(lineArg, intOpt),
-		Edge:      command.SimpleEdge(n),
+		//Edge:      command.SimpleEdge(n),
 	}
+	next := command.SerialNodes(command.SimpleProcessor(e.OpenEditor, nil))
 	n.Edge = &emacsEdge{
-		next:    command.SerialNodes(command.SimpleProcessor(e.OpenEditor, nil)),
+		next:    next,
 		eNode:   n,
 		intNode: in,
 	}
+	in.Edge = &intEdge{
+		next:  next,
+		eNode: n,
+	}
 
 	return command.SerialNodesTo(n, command.NewFlagNode(command.BoolFlag(newFileArg, 'n')))
+}
+
+type intEdge struct {
+	next  *command.Node
+	eNode *command.Node
+}
+
+func (ie *intEdge) Next(input *command.Input, data *command.Data) (*command.Node, error) {
+	if _, ok := input.Peek(); !ok {
+		return ie.next, nil
+	}
+	return ie.eNode, nil
 }
 
 // TODO: make helper function command.EdgeFromFunc(func(...) (node, error)) {...}
