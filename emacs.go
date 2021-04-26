@@ -136,18 +136,8 @@ func (e *Emacs) Cache() map[string][]string {
 }
 
 func (e *Emacs) Node() *command.Node {
-	// We don't want to cache alias commands.
+	// We don't want to cache alias commands. Hence why it comes after.
 	return command.AliasNode(fileAliaserName, e, command.CacheNode(cacheName, e, e.emacsArgNode()))
-	/*return command.BranchNode(
-		map[string]*command.Node{
-			"h": command.SerialNodes(
-				command.OptionalIntNode(historicalArg, &command.ArgOpt{Validators: []command.ArgValidator{command.IntNonNegative()}}),
-				command.SimpleProcessor(e.RunHistorical, nil),
-			),
-		},
-		command.AliasNode(fileAliaserName, e, e.emacsArgNode()),
-		false,
-	)*/
 }
 
 func (e *Emacs) emacsArgNode() *command.Node {
