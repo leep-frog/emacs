@@ -258,7 +258,7 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			want: &Emacs{
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "dirA")},
+					cacheName: {absPath(t, "dirA")},
 				},
 			},
 		}, {
@@ -277,7 +277,7 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			want: &Emacs{
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "newFile.txt")},
+					cacheName: {absPath(t, "newFile.txt")},
 				},
 			},
 		}, {
@@ -623,7 +623,7 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "alpha.go"), absPath(t, "alpha.txt")},
+					cacheName: {absPath(t, "alpha.go"), absPath(t, "alpha.txt")},
 				},
 			},
 		}, {
@@ -659,7 +659,7 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			want: &Emacs{
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "newFile.txt")},
+					cacheName: {absPath(t, "newFile.txt")},
 				},
 			},
 		}, {
@@ -678,7 +678,7 @@ func TestEmacsExecution(t *testing.T) {
 					"uno": {absPath(t, "alpha.go")},
 				}},
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "alpha.go")},
+					cacheName: {absPath(t, "alpha.go")},
 				},
 			},
 		}, {
@@ -702,7 +702,7 @@ func TestEmacsExecution(t *testing.T) {
 					"uno": {absPath(t, "alpha.txt")},
 				}},
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "alpha.txt")},
+					cacheName: {absPath(t, "alpha.txt")},
 				},
 			},
 		}, {
@@ -731,7 +731,7 @@ func TestEmacsExecution(t *testing.T) {
 					"un":    {absPath(t, "alpha.go")},
 				}},
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "alpha.go")},
+					cacheName: {absPath(t, "alpha.go")},
 				},
 			},
 		}, {
@@ -750,7 +750,7 @@ func TestEmacsExecution(t *testing.T) {
 					"t": {absPath(t, "dirA")},
 				}},
 				Caches: map[string][]string{
-					cacheName: []string{absPath(t, "dirA")},
+					cacheName: {absPath(t, "dirA")},
 				},
 			},
 		}, // DeleteAliases tests
