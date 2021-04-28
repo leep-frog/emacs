@@ -111,6 +111,10 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 	}
 
 	cmd := make([]string, 0, 1+2*len(files))
+	// with daemon:
+	// 1. add "(server-start)" to emacs init file
+	// 2. change this command to "emacsclient ...filenames... || emacs --daemon && emacsclient ...filenames..."
+	// (2) will either use an existing server to open the files or it will create a server and then open the files.
 	cmd = append(cmd, "emacs")
 	cmd = append(cmd, "--no-window-system")
 	for _, f := range files {
