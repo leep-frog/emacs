@@ -604,7 +604,7 @@ func TestEmacsExecution(t *testing.T) {
 				WantStderr: []string{"not enough arguments"},
 				WantErr:    fmt.Errorf("not enough arguments"),
 			},
-		}, // TODO: disallow alias with no values.
+		},
 		{
 			name: "handles more than one arguments",
 			etc: &command.ExecuteTestCase{
