@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/leep-frog/command"
-	"google.golang.org/protobuf/testing/protocmp"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -986,25 +985,7 @@ func TestEmacsExecution(t *testing.T) {
 			}
 			test.etc.Node = test.e.Node()
 			command.ExecuteTest(t, test.etc, nil)
-
-			// Assume wantChanged if test.want is set
-			wantChanged := test.want != nil
-			changed := test.e != nil && test.e.Changed()
-			if changed != wantChanged {
-				t.Fatalf("Execute(%v) marked Changed as %v; want %v", test.etc.Args, changed, wantChanged)
-			}
-
-			// Only check diff if we are expecting a change.
-			if wantChanged {
-				opts := []cmp.Option{
-					cmpopts.IgnoreUnexported(Emacs{}), // commands.Value{}),
-					protocmp.Transform(),
-					cmpopts.EquateEmpty(),
-				}
-				if diff := cmp.Diff(test.want, test.e, opts...); diff != "" {
-					t.Fatalf("Execute(%v) produced emacs diff (-want, +got):\n%s", test.etc.Args, diff)
-				}
-			}
+			command.ChangeTest(t, test.want, test.e, cmpopts.IgnoreUnexported(Emacs{}), cmpopts.EquateEmpty())
 		})
 	}
 }
