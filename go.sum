@@ -8,5 +8,7 @@ github.com/leep-frog/command v0.0.0-20210514183203-25b555702d6a h1:4iBCJBXQ3dYMx
 github.com/leep-frog/command v0.0.0-20210514183203-25b555702d6a/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 github.com/leep-frog/command v0.0.0-20210514183457-26765d3e38fd h1:llEInbmfrLxAc5bO8JQWkLuwkZi2/n90bRH19vWsRuo=
 github.com/leep-frog/command v0.0.0-20210514183457-26765d3e38fd/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
+github.com/leep-frog/command v0.0.0-20210514183751-94427761486e h1:jw/kNH2uCqN5hLCQxc2JXRKB7ZNVuc2viiAQM8kxrf4=
+github.com/leep-frog/command v0.0.0-20210514183751-94427761486e/go.mod h1:ir5/yEP+6f6CQa4NivSdA1lPeyq+nouR7WjSfdXnL8g=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543 h1:E7g+9GITq07hpfrRu66IVDexMakfv52eLZ2CXBWiKr4=
 golang.org/x/xerrors v0.0.0-20191204190536-9bdfabe68543/go.mod h1:I/5z698sn9Ka8TeJc9MKroUUfqBBauWjQqLJ2OPfmY0=
