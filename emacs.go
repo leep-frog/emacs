@@ -117,6 +117,7 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 	}
 
 	eData.Executable = append(eData.Executable, getCmd(files...))
+	output.Stdout("Executing: %v", eData.Executable)
 	return nil
 }
 
@@ -137,9 +138,14 @@ func (e *Emacs) Node() *command.Node {
 		// TODO: Make a settings node. But wait until we have more use
 		// cases so we can get an idea of how to actual make that node useful.
 		map[string]*command.Node{
-			"dae": command.SerialNodes(command.ExecutorNode(func(_ command.Output, _ *command.Data) error {
+			"dae": command.SerialNodes(command.ExecutorNode(func(output command.Output, _ *command.Data) error {
 				e.DaemonMode = !e.DaemonMode
 				e.MarkChanged()
+				if e.DaemonMode {
+					output.Stdout("Daemon mode activated.")
+				} else {
+					output.Stdout("Daemon mode deactivated.")
+				}
 				return nil
 			})),
 		},
