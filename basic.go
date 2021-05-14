@@ -38,6 +38,6 @@ func daemon(fos ...*fileOpts) []string {
 		"emacsclient",
 		"-t",
 		"-e",
-		fmt.Sprintf("'%s'", strings.Join(eCmds, "")),
+		fmt.Sprintf("'(progn %s)'", strings.Join(eCmds, "")),
 	}
 }
