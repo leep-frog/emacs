@@ -22,11 +22,13 @@ func basic(fos ...*fileOpts) []string {
 
 func daemon(fos ...*fileOpts) []string {
 	var eCmds []string
+	findCmd := "find-file"
 	for _, fo := range fos {
-		eCmds = append(eCmds, fmt.Sprintf(`(find-file "%s")`, fo.name))
+		eCmds = append(eCmds, fmt.Sprintf(`(%s "%s")`, findCmd, fo.name))
 		if fo.lineNumber != 0 {
 			eCmds = append(eCmds, fmt.Sprintf(`(goto-line %d)`, fo.lineNumber))
 		}
+		findCmd = "find-file-other-window"
 	}
 	if len(fos) == 2 {
 		eCmds = append(eCmds, `(other-window)`)
