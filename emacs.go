@@ -40,6 +40,8 @@ type Emacs struct {
 	Aliases map[string]map[string][]string
 	changed bool
 	Caches  map[string][]string
+
+	DaemonMode bool
 }
 
 func (e *Emacs) AliasMap() map[string]map[string][]string {
@@ -94,8 +96,7 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 
 	files := make([]*fileOpts, 0, len(ergs))
 	il := data.Values[lineArg].IntList()
-	for i := len(ergs) - 1; i >= 0; i-- {
-		erg := ergs[i]
+	for i, erg := range ergs {
 		// Check file exists, unless --new flag provided.
 		if !allowNewFiles {
 			if _, err := os.Stat(erg); os.IsNotExist(err) {
@@ -110,21 +111,12 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 		files = append(files, &fileOpts{erg, iv})
 	}
 
-	cmd := make([]string, 0, 1+2*len(files))
-	// with daemon:
-	// 1. add "(server-start)" to emacs init file
-	// 2. change this command to "emacsclient ...filenames... || emacs --daemon && emacsclient ...filenames..."
-	// (2) will either use an existing server to open the files or it will create a server and then open the files.
-	cmd = append(cmd, "emacs")
-	cmd = append(cmd, "--no-window-system")
-	for _, f := range files {
-		if f.lineNumber != 0 {
-			cmd = append(cmd, fmt.Sprintf("+%d", f.lineNumber))
-		}
-		cmd = append(cmd, f.name)
+	getCmd := basic
+	if e.DaemonMode {
+		getCmd = daemon
 	}
 
-	eData.Executable = append(eData.Executable, cmd)
+	eData.Executable = append(eData.Executable, getCmd(files...))
 	return nil
 }
 
@@ -141,7 +133,19 @@ func (e *Emacs) Cache() map[string][]string {
 
 func (e *Emacs) Node() *command.Node {
 	// We don't want to cache alias commands. Hence why it comes after.
-	return command.AliasNode(fileAliaserName, e, command.CacheNode(cacheName, e, e.emacsArgNode()))
+	return command.BranchNode(
+		// TODO: Make a settings node. But wait until we have more use
+		// cases so we can get an idea of how to actual make that node useful.
+		map[string]*command.Node{
+			"dae": command.SerialNodes(command.ExecutorNode(func(_ command.Output, _ *command.Data) error {
+				e.DaemonMode = !e.DaemonMode
+				e.MarkChanged()
+				return nil
+			})),
+		},
+		command.AliasNode(fileAliaserName, e, command.CacheNode(cacheName, e, e.emacsArgNode())),
+		false,
+	)
 }
 
 func (e *Emacs) emacsArgNode() *command.Node {

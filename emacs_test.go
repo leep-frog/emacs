@@ -35,10 +35,23 @@ func TestLoad(t *testing.T) {
 			name: "properly unmarshals",
 			json: fmt.Sprintf(`{"Aliases":{"%s":{"city":["catan", "oreAndWheat"]}},"PreviousExecutions":null}`, fileAliaserName),
 			want: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {"catan", "oreAndWheat"},
+				Aliases: map[string]map[string][]string{
+					fileAliaserName: {
+						"city": {"catan", "oreAndWheat"},
+					},
 				},
+			},
+		},
+		{
+			name: "properly unmarshals with daemon",
+			json: fmt.Sprintf(`{"DaemonMode": true, "Aliases":{"%s":{"city":["catan", "oreAndWheat"]}},"PreviousExecutions":null}`, fileAliaserName),
+			want: &Emacs{
+				Aliases: map[string]map[string][]string{
+					fileAliaserName: {
+						"city": {"catan", "oreAndWheat"},
+					},
 				},
+				DaemonMode: true,
 			},
 		},
 	} {
@@ -217,6 +230,34 @@ func TestEmacsExecution(t *testing.T) {
 		etc  *command.ExecuteTestCase
 		want *Emacs
 	}{
+		// Daemon mode.
+		{
+			name: "daemon toggle doesn't accept args",
+			etc: &command.ExecuteTestCase{
+				Args:       []string{"dae", "mon"},
+				WantErr:    fmt.Errorf("Unprocessed extra args: [mon]"),
+				WantStderr: []string{"Unprocessed extra args: [mon]"},
+			},
+		},
+		{
+			name: "toggles daemon mode to true",
+			etc: &command.ExecuteTestCase{
+				Args: []string{"dae"},
+			},
+			want: &Emacs{
+				DaemonMode: true,
+			},
+		},
+		{
+			name: "toggles daemon mode to false",
+			e: &Emacs{
+				DaemonMode: true,
+			},
+			etc: &command.ExecuteTestCase{
+				Args: []string{"dae"},
+			},
+			want: &Emacs{},
+		},
 		// OpenEditor tests
 		{
 			name: "error when too many arguments",
