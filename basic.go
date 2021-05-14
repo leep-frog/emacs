@@ -31,7 +31,7 @@ func daemon(fos ...*fileOpts) []string {
 		findCmd = "find-file-other-window"
 	}
 	if len(fos) == 2 {
-		eCmds = append(eCmds, `(other-window)`)
+		eCmds = append(eCmds, `(other-window 1)`)
 	}
 	return []string{
 		// TODO: add daemon initializer code.
