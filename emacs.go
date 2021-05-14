@@ -152,6 +152,7 @@ func (e *Emacs) Node() *command.Node {
 				eData.Executable = append(eData.Executable,
 					[]string{"echo", "Killing", "emacs", "daemon"},
 					[]string{"emacsclient", "-e", "'(kill-emacs)'"},
+					[]string{"echo", "Success!"},
 				)
 				return nil
 			}, nil)),
@@ -159,6 +160,7 @@ func (e *Emacs) Node() *command.Node {
 				eData.Executable = append(eData.Executable,
 					[]string{"echo", "Starting", "emacs", "daemon"},
 					[]string{"emacs", "--daemon"},
+					[]string{"echo", "Success!"},
 				)
 				return nil
 			}, nil)),
