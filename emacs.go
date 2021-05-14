@@ -148,6 +148,20 @@ func (e *Emacs) Node() *command.Node {
 				}
 				return nil
 			})),
+			"dk": command.SerialNodes(command.SimpleProcessor(func(input *command.Input, output command.Output, _ *command.Data, eData *command.ExecuteData) error {
+				eData.Executable = append(eData.Executable,
+					[]string{"echo", "Killing", "emacs", "daemon"},
+					[]string{"emacsclient", "-e", "'(kill-emacs)'"},
+				)
+				return nil
+			}, nil)),
+			"ds": command.SerialNodes(command.SimpleProcessor(func(input *command.Input, output command.Output, _ *command.Data, eData *command.ExecuteData) error {
+				eData.Executable = append(eData.Executable,
+					[]string{"echo", "Starting", "emacs", "daemon"},
+					[]string{"emacs", "--daemon"},
+				)
+				return nil
+			}, nil)),
 		},
 		command.AliasNode(fileAliaserName, e, command.CacheNode(cacheName, e, e.emacsArgNode())),
 		false,
