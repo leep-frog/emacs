@@ -26,9 +26,10 @@ const (
 )
 
 var (
-	//fileAliaser = commands.NewFileAliaser
 	// This is in the var section so it can be stubbed out for tests.
 	historyLimit = 25
+
+	debugInitFlag = command.BoolFlag("debugInit", 'd')
 )
 
 func CLI() *Emacs {
@@ -116,7 +117,12 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 		getCmd = daemon
 	}
 
-	eData.Executable = append(eData.Executable, getCmd(files...))
+	gotCmd, err := getCmd(data.Values[debugInitFlag.Name()].Bool(), files...)
+	if err != nil {
+		return output.Err(err)
+	}
+
+	eData.Executable = append(eData.Executable, gotCmd)
 	return nil
 }
 
@@ -233,7 +239,12 @@ func (e *Emacs) emacsArgNode() *command.Node {
 		eNode: n,
 	}
 
-	return command.SerialNodesTo(n, command.NewFlagNode(command.BoolFlag(newFileArg, 'n')))
+	return command.SerialNodesTo(n,
+		command.NewFlagNode(
+			command.BoolFlag(newFileArg, 'n'),
+			debugInitFlag,
+		),
+	)
 }
 
 type intEdge struct {
