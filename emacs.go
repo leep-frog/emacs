@@ -1,13 +1,13 @@
 // Package emacs implements an emacs cache
 package emacs
 
-// TODO: this package should eventually deal with maintaining an emacs server.
-
 import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
+	"strings"
 
 	"github.com/leep-frog/command"
 )
@@ -137,12 +137,43 @@ func (e *Emacs) Cache() map[string][]string {
 	return e.Caches
 }
 
+func (e *Emacs) AliasDotEl(output command.Output, data *command.Data) error {
+	var aliases []string
+	for k := range e.Aliases[fileAliaserName] {
+		aliases = append(aliases, k)
+	}
+	sort.Strings(aliases)
+
+	r := []string{
+		"(setq aliasMap",
+		"#s(hash-table",
+		fmt.Sprintf("size %d", len(aliases)),
+		"test equal",
+		"data (",
+	}
+	for _, k := range aliases {
+		r = append(r, fmt.Sprintf(`"%s" "%s"`, k, e.Aliases[fileAliaserName][k]))
+	}
+	r = append(r,
+		")))",
+		"",
+		`(global-set-key (kbd "C-x C-j") (lambda () (interactive)`,
+		`(setq a (read-string "Alias: "))`,
+		`(setq v (gethash a aliasMap))`,
+		`(if v (find-file v) (message "Unknown alias: %s" a))`,
+		"))",
+	)
+	output.Stdout(strings.Join(r, "\n"))
+	return nil
+}
+
 func (e *Emacs) Node() *command.Node {
 	// We don't want to cache alias commands. Hence why it comes after.
 	return command.BranchNode(
 		// TODO: Make a settings node. But wait until we have more use
 		// cases so we can get an idea of how to actual make that node useful.
 		map[string]*command.Node{
+			"el": command.SerialNodes(command.ExecutorNode(e.AliasDotEl)),
 			"dae": command.SerialNodes(command.ExecutorNode(func(output command.Output, _ *command.Data) error {
 				e.DaemonMode = !e.DaemonMode
 				e.MarkChanged()
