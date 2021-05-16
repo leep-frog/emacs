@@ -117,7 +117,6 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 	}
 
 	eData.Executable = append(eData.Executable, getCmd(files...))
-	output.Stdout("Executing: %v", eData.Executable)
 	return nil
 }
 
