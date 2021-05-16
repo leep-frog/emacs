@@ -152,7 +152,12 @@ func (e *Emacs) AliasDotEl(output command.Output, data *command.Data) error {
 		"data (",
 	}
 	for _, k := range aliases {
-		r = append(r, fmt.Sprintf(`"%s" "%s"`, k, e.Aliases[fileAliaserName][k]))
+		v := e.Aliases[fileAliaserName][k]
+		if len(v) != 1 {
+			output.Stderr("skipping %s because it has more than one value")
+		} else {
+			r = append(r, fmt.Sprintf(`"%s" "%s"`, k, v[0]))
+		}
 	}
 	r = append(r,
 		")))",
@@ -160,7 +165,7 @@ func (e *Emacs) AliasDotEl(output command.Output, data *command.Data) error {
 		`(global-set-key (kbd "C-x C-j") (lambda () (interactive)`,
 		`(setq a (read-string "Alias: "))`,
 		`(setq v (gethash a aliasMap))`,
-		`(if v (find-file v) (message "Unknown alias: %s" a))`,
+		`(if v (find-file v) (message "Unknown alias: %%s" a))`,
 		"))",
 	)
 	output.Stdout(strings.Join(r, "\n"))
