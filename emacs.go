@@ -90,7 +90,7 @@ func (e *Emacs) OpenEditor(input *command.Input, output command.Output, data *co
 	if len(ergs) == 1 {
 		fi, _ := os.Stat(ergs[0])
 		if fi != nil && fi.IsDir() {
-			eData.Executable = append(eData.Executable, []string{"cd", ergs[0]})
+			eData.Executable = append(eData.Executable, fmt.Sprintf("cd %s", ergs[0]))
 			return nil
 		}
 	}
@@ -155,17 +155,17 @@ func (e *Emacs) Node() *command.Node {
 			})),
 			"dk": command.SerialNodes(command.SimpleProcessor(func(input *command.Input, output command.Output, _ *command.Data, eData *command.ExecuteData) error {
 				eData.Executable = append(eData.Executable,
-					[]string{"echo", "Killing", "emacs", "daemon"},
-					[]string{"emacsclient", "-e", "'(kill-emacs)'"},
-					[]string{"echo", "Success!"},
+					"echo Killing emacs daemon",
+					"emacsclient -e '(kill-emacs)'",
+					"echo Success!",
 				)
 				return nil
 			}, nil)),
 			"ds": command.SerialNodes(command.SimpleProcessor(func(input *command.Input, output command.Output, _ *command.Data, eData *command.ExecuteData) error {
 				eData.Executable = append(eData.Executable,
-					[]string{"echo", "Starting", "emacs", "daemon"},
-					[]string{"emacs", "--daemon"},
-					[]string{"echo", "Success!"},
+					"echo Starting emacs daemon",
+					"emacs --daemon",
+					"echo Success!",
 				)
 				return nil
 			}, nil)),

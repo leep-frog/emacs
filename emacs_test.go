@@ -92,6 +92,7 @@ func TestAutocomplete(t *testing.T) {
 			ctc: &command.CompleteTestCase{
 				Want: []string{
 					".git/",
+					"basic.go",
 					"emacs.go",
 					"emacs_test.go",
 					"go.mod",
@@ -127,6 +128,7 @@ func TestAutocomplete(t *testing.T) {
 				Args: []string{"file1.txt", ""},
 				Want: []string{
 					".git/",
+					"basic.go",
 					"emacs.go",
 					"emacs_test.go",
 					"go.mod",
@@ -242,7 +244,8 @@ func TestEmacsExecution(t *testing.T) {
 		{
 			name: "toggles daemon mode to true",
 			etc: &command.ExecuteTestCase{
-				Args: []string{"dae"},
+				Args:       []string{"dae"},
+				WantStdout: []string{"Daemon mode activated."},
 			},
 			want: &Emacs{
 				DaemonMode: true,
@@ -254,7 +257,8 @@ func TestEmacsExecution(t *testing.T) {
 				DaemonMode: true,
 			},
 			etc: &command.ExecuteTestCase{
-				Args: []string{"dae"},
+				Args:       []string{"dae"},
+				WantStdout: []string{"Daemon mode deactivated."},
 			},
 			want: &Emacs{},
 		},
@@ -271,13 +275,8 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{
-						{
-							"emacs",
-							"--no-window-system",
-							absPath(t, "alpha.go"),
-							absPath(t, "alpha.txt"),
-						},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s %s", absPath(t, "alpha.go"), absPath(t, "alpha.txt")),
 					},
 				},
 			},
@@ -286,10 +285,7 @@ func TestEmacsExecution(t *testing.T) {
 			etc: &command.ExecuteTestCase{
 				Args: []string{path("dirA")},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"cd",
-						absPath(t, "dirA"),
-					}},
+					Executable: []string{fmt.Sprintf("cd %s", absPath(t, "dirA"))},
 				},
 				WantData: &command.Data{
 					Values: map[string]*command.Value{
@@ -332,11 +328,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "newFile.txt"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "newFile.txt")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -352,11 +346,9 @@ func TestEmacsExecution(t *testing.T) {
 			etc: &command.ExecuteTestCase{
 				Args: []string{path("newFile.txt"), "--new"},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "newFile.txt"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "newFile.txt")),
+					},
 				},
 				WantData: &command.Data{
 					Values: map[string]*command.Value{
@@ -391,12 +383,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "catan", "oreAndWheat"),
-						absPath(t, "compounds", "sodiumChloride"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s %s", absPath(t, "catan", "oreAndWheat"), absPath(t, "compounds", "sodiumChloride")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -433,13 +422,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						"+32",
-						absPath(t, "compounds", "sodiumChloride"),
-						absPath(t, "alpha.txt"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system +32 %s %s", absPath(t, "compounds", "sodiumChloride"), absPath(t, "alpha.txt")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -475,13 +460,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "42"),
-						"+32",
-						absPath(t, "compounds", "sodiumChloride"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s +32 %s", absPath(t, "42"), absPath(t, "compounds", "sodiumChloride")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -520,11 +501,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "luckyNumberThree"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "luckyNumberThree")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -541,9 +520,10 @@ func TestEmacsExecution(t *testing.T) {
 		}, {
 			name: "reduces size of previous executions if at limit",
 			e: &Emacs{
-				Aliases: map[string]map[string][]string{fileAliaserName: {
-					"city": {path("catan", "oreAndWheat")},
-				},
+				Aliases: map[string]map[string][]string{
+					fileAliaserName: {
+						"city": {path("catan", "oreAndWheat")},
+					},
 				},
 				Caches: map[string][]string{
 					cacheName: {
@@ -559,11 +539,9 @@ func TestEmacsExecution(t *testing.T) {
 					},
 				},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "luckyNumberThree"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "luckyNumberThree")),
+					},
 				},
 			},
 			want: &Emacs{
@@ -597,11 +575,9 @@ func TestEmacsExecution(t *testing.T) {
 			},
 			etc: &command.ExecuteTestCase{
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "alpha.go"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "alpha.go")),
+					},
 				},
 				WantData: &command.Data{
 					Values: map[string]*command.Value{
@@ -625,11 +601,9 @@ func TestEmacsExecution(t *testing.T) {
 			etc: &command.ExecuteTestCase{
 				Args: []string{},
 				WantExecuteData: &command.ExecuteData{
-					Executable: [][]string{{
-						"emacs",
-						"--no-window-system",
-						absPath(t, "alpha.go"),
-					}},
+					Executable: []string{
+						fmt.Sprintf("emacs --no-window-system %s", absPath(t, "alpha.go")),
+					},
 				},
 				WantData: &command.Data{
 					Values: map[string]*command.Value{

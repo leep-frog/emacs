@@ -5,7 +5,7 @@ import (
 	"strings"
 )
 
-func basic(debugInit bool, fos ...*fileOpts) ([]string, error) {
+func basic(debugInit bool, fos ...*fileOpts) (string, error) {
 	r := make([]string, 0, 1+2*len(fos))
 	r = append(r, "emacs", "--no-window-system")
 	if debugInit {
@@ -20,12 +20,12 @@ func basic(debugInit bool, fos ...*fileOpts) ([]string, error) {
 		r = append(r, f.name)
 	}
 
-	return r, nil
+	return strings.Join(r, " "), nil
 }
 
-func daemon(debugInit bool, fos ...*fileOpts) ([]string, error) {
+func daemon(debugInit bool, fos ...*fileOpts) (string, error) {
 	if debugInit {
-		return nil, fmt.Errorf("--debug-init flag is not allowed in daemon mode")
+		return "", fmt.Errorf("--debug-init flag is not allowed in daemon mode")
 	}
 	var eCmds []string
 	findCmd := "find-file"
@@ -39,11 +39,7 @@ func daemon(debugInit bool, fos ...*fileOpts) ([]string, error) {
 	if len(fos) == 2 {
 		eCmds = append(eCmds, `(other-window 1)`)
 	}
-	return []string{
-		// TODO: add daemon initializer code.
-		"emacsclient",
-		"-t",
-		"-e",
-		fmt.Sprintf("'(progn %s)'", strings.Join(eCmds, "")),
-	}, nil
+
+	// TODO: add daemon initializer code.
+	return fmt.Sprintf("emacsclient -t -e '(progn %s)'", strings.Join(eCmds, "")), nil
 }
